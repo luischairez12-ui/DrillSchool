@@ -46,6 +46,7 @@ fun OperatorSeatPage(
     onAddRod: () -> Unit,
     onReset: () -> Unit,
     onPeek: () -> Unit,
+    onPeekLocator: () -> Unit,
     onReplayLocator: () -> Unit,
     onHaptic: (FeedbackCue) -> Unit,
     voiceEnabled: Boolean
@@ -135,11 +136,18 @@ fun OperatorSeatPage(
                         fontSize = 10.sp, color = SchoolMuted)
                 }
                 TextButton(
-                    onClick = onPeek,
-                    contentPadding = PaddingValues(horizontal = 3.dp)
+                    onClick = onPeekLocator,
+                    contentPadding = PaddingValues(horizontal = 2.dp)
                 ) {
-                    Icon(Icons.Outlined.Route, null, Modifier.size(16.dp))
-                    Text(" Bar Shot", fontSize = 11.sp)
+                    Icon(Icons.Outlined.PhonelinkRing, null, Modifier.size(15.dp))
+                    Text(" Locator", fontSize = 10.sp)
+                }
+                TextButton(
+                    onClick = onPeek,
+                    contentPadding = PaddingValues(horizontal = 2.dp)
+                ) {
+                    Icon(Icons.Outlined.Route, null, Modifier.size(15.dp))
+                    Text(" Bar Shot", fontSize = 10.sp)
                 }
             }
         }
