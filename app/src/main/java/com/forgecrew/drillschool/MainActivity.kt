@@ -192,7 +192,7 @@ fun DrillSchoolApp() {
                             color = OrangeDark, fontWeight = FontWeight.Bold)
                     }
                     Surface(color = OrangePale, shape = RoundedCornerShape(11.dp)) {
-                        Text("V5", Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                        Text("V6", Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
                             color = OrangeDark, fontWeight = FontWeight.Black)
                     }
                 }
@@ -289,6 +289,10 @@ fun DrillSchoolApp() {
                         session = session,
                         rig = rig,
                         displayStyle = displayStyle,
+                        onDisplayStyle = {
+                            displayStyle = it
+                            prefs.edit().putString("display_style", it.name).apply()
+                        },
                         threeD = threeD,
                         onThreeD = {
                             threeD = it

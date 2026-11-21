@@ -36,6 +36,7 @@ fun OperatorSeatPage(
     session: SimState,
     rig: RigProfile,
     displayStyle: GuidanceStyle,
+    onDisplayStyle: (GuidanceStyle) -> Unit,
     threeD: Boolean,
     onThreeD: (Boolean) -> Unit,
     practiceMode: PracticeMode,
@@ -111,6 +112,7 @@ fun OperatorSeatPage(
         GuidanceDisplayPanel(
             session = session,
             style = displayStyle,
+            onStyleChange = onDisplayStyle,
             threeD = threeD,
             onViewChange = onThreeD,
             modifier = Modifier.fillMaxWidth().weight(1f)

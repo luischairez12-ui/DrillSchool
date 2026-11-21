@@ -105,3 +105,15 @@ Reworked operator view around field photos supplied by the project owner. The ap
 The simulated guidance calculation displays projected exit-depth and lateral differences based on the *fictional* game state; this is not a true HDD steering estimate. No real hardware, beacon, battery, temperature, or drilling-fluid sensors are connected. Unavailable readings show an em dash instead of fabricated values. The application does not provide actual locate measurements, machine operating instructions, utility clearances, or verified target steering. It is not affiliated with equipment manufacturers.
 
 The simulator still uses simplified stepping, rod changes, optional Juan TTS, offline score storage and haptic feedback. User-submitted photos and concept artwork served as interface references; no OEM artwork, logos, or firmware have been embedded.
+
+
+## Version 0.6.0: Distinct Rig-Side Display Layouts
+
+The v0.5 design incorrectly drew DigiTrak- and Subsite-inspired displays using the same clock-and-target composition, differing mostly in color. V0.6 fixes this with **two genuinely different Compose screens**:
+
+- DigiTrak-inspired: dedicated large toolface dial, prominent pitch and depth, circular target reticle, right telemetry-status strip, and horizontal/vertical model offsets.
+- Subsite-inspired: dedicated drill-to bore line/grade profile (or simplified perspective view), prominent pitch and depth, compact toolface indicator, and independent station/grade/side measurements.
+
+Use the dropdown **inside the Operator Seat** to change between these profiles; the choice persists locally. Each has 2D/3D *training* variations. A larger, fixed-height bottom measurement strip prevents the previous clipped readouts.
+
+This is an original teaching interface informed by user-supplied equipment photographs. **It is not exact OEM firmware and is not live locating equipment**. Readouts are fictional game values, and unavailable transmitter battery, temperature, and fluid pressure show dashes. Never use DrillSchool for actual steering decisions or utility clearances.
