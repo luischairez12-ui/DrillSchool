@@ -270,7 +270,6 @@ fun DrillSchoolApp() {
                     !sessionActive -> SimulatorSetupPage(
                         session = session,
                         rig = rig,
-                        rotationSensitivity = rotationSensitivity,
                         displayStyle = displayStyle,
                         practiceMode = practiceMode,
                         onStyle = {
@@ -298,6 +297,7 @@ fun DrillSchoolApp() {
                     else -> OperatorSeatPage(
                         session = session,
                         rig = rig,
+                        rotationSensitivity = rotationSensitivity,
                         displayStyle = displayStyle,
                         onDisplayStyle = {
                             displayStyle = it
