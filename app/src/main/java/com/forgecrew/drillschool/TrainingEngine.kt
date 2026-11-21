@@ -78,6 +78,8 @@ data class SimState(
     val pitchPercent: Double = 8.0,
     val lastClock: Int = 12,
     val rotationRpm: Int = 0,
+    val rodNumber: Int = 1,
+    val awaitingNextRod: Boolean = false,
     val thrusts: Int = 0,
     val steerThrusts: Int = 0,
     val phase: SimPhase = SimPhase.RUNNING,
@@ -88,7 +90,8 @@ data class SimState(
 
 /** Intentionally exaggerated steering so players can learn cause/effect on a phone screen. */
 object TrainingEngine {
-    const val stepFeet = 5.0
+    const val stepFeet = 2.0
+    const val rodFeet = 10.0 // Nominal rod length for the V3 model profiles.
 
     /** Fictional clock orientation. Positive = clockwise, negative = counterclockwise. */
     fun orient(state: SimState, direction: Int, rpm: Int): SimState {
@@ -97,12 +100,26 @@ object TrainingEngine {
         val nextClock = ((state.lastClock - 1 + direction + 12) % 12) + 1
         return state.copy(
             lastClock = nextClock,
-            rotationRpm = rpm.coerceIn(0, 120),
-            report = "Toolface at ${nextClock} o'clock • simulated rotation ${rpm.coerceIn(0, 120)} RPM."
+            rotationRpm = rpm.coerceIn(0, 300),
+            report = "Toolface at ${nextClock} o'clock • simulated rotation ${rpm.coerceIn(0, 300)} RPM."
         )
     }
 
     fun stopRotation(state: SimState): SimState = state.copy(rotationRpm = 0)
+
+    /**
+     * Simulated rod connection only. This does NOT depict the real machine's
+     * pipe-loading, vise, isolation or safety procedure.
+     */
+    fun addRod(state: SimState): SimState {
+        if (state.phase != SimPhase.RUNNING || !state.awaitingNextRod) return state
+        return state.copy(
+            rodNumber = state.rodNumber + 1,
+            awaitingNextRod = false,
+            rotationRpm = 0,
+            report = "Simulated rod ${state.rodNumber + 1} connected. Ready for the next ${oneDecimal(rodFeet)} ft stroke."
+        )
+    }
 
     /** Rewind one game step. Never rewinds through an impact/failure. */
     fun pullBack(state: SimState): SimState {
@@ -119,6 +136,7 @@ object TrainingEngine {
             steerThrusts = remaining.count { it.mode == SimMode.STEER },
             shots = remaining,
             rotationRpm = 0,
+            awaitingNextRod = false,
             report = "Pulled back ${oneDecimal(stepFeet)} ft in this training game."
         )
     }
@@ -126,12 +144,18 @@ object TrainingEngine {
     fun advance(state: SimState, mode: SimMode, clock: Int): SimState {
         require(clock in 1..12) { "Toolface must be 1 through 12." }
         if (state.phase != SimPhase.RUNNING) return state
+        if (state.awaitingNextRod) return state.copy(
+            rotationRpm = 0,
+            report = "Rod ${state.rodNumber} reached its 10 ft limit. Connect the next simulated rod first."
+        )
 
         val radians = (if (clock == 12) 0 else clock) * PI / 6.0
-        val pitchChange = if (mode == SimMode.STEER) -3.0 * cos(radians) else 0.0
-        val lateralChange = if (mode == SimMode.STEER) 0.85 * sin(radians) else 0.0
+        val pitchChange = if (mode == SimMode.STEER) -1.2 * cos(radians) else 0.0
+        val lateralChange = if (mode == SimMode.STEER) 0.34 * sin(radians) else 0.0
         val pitch = (state.pitchPercent + pitchChange).coerceIn(-16.0, 16.0)
-        val station = (state.stationFeet + stepFeet).coerceAtMost(state.mission.totalFeet)
+        val nextRodBoundary = rodFeet * state.rodNumber
+        val station = (state.stationFeet + stepFeet).coerceAtMost(minOf(state.mission.totalFeet, nextRodBoundary))
+        val atRodEnd = station >= nextRodBoundary - 0.0001 && station < state.mission.totalFeet
         val depth = state.depthFeet + (station - state.stationFeet) * pitch / 100.0
         val lateral = state.lateralFeet + lateralChange
         val shot = DrillShot(station, depth, lateral, pitch, clock, mode)
@@ -160,7 +184,9 @@ object TrainingEngine {
             stationFeet = station, depthFeet = depth, lateralFeet = lateral,
             pitchPercent = pitch, lastClock = clock, thrusts = state.thrusts + 1,
             steerThrusts = steerCount, shots = steps,
-            report = if (mode == SimMode.STEER) "Steered at ${clock} o’clock. Check your simulated locator readout."
+            awaitingNextRod = atRodEnd,
+            report = if (atRodEnd) "Rod ${state.rodNumber} complete at ${oneDecimal(station)} ft. Connect rod ${state.rodNumber + 1}."
+            else if (mode == SimMode.STEER) "Steered at ${clock} o’clock. Check your simulated locator readout."
             else "Rotating and advancing. Pitch is held steady in this simplified game."
         )
         if (station >= state.mission.totalFeet) {

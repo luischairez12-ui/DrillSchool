@@ -6,6 +6,8 @@ import android.speech.tts.TextToSpeech
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -51,6 +53,8 @@ fun DrillSchoolApp() {
     var settingsOpen by remember { mutableStateOf(false) }
     var hapticLevel by remember { mutableIntStateOf(prefs.getInt("haptics_level", 2).coerceIn(0, 3)) }
     var voiceEnabled by remember { mutableStateOf(prefs.getBoolean("locator_voice", true)) }
+    var rigId by remember { mutableStateOf(prefs.getString("rig_id", "d24x40s3") ?: "d24x40s3") }
+    val rig = getRigProfile(rigId)
     var ttsReady by remember { mutableStateOf(false) }
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
     val locator = LocatorCoach.current(session)
@@ -170,9 +174,10 @@ fun DrillSchoolApp() {
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (tab) {
                 "Simulator" -> if (barShotOpen) LiveBarShotPage(
-                    session = session, onBack = { barShotOpen = false }, onReset = ::resetMission
+                    session = session, rig = rig,
+                    onBack = { barShotOpen = false }, onReset = ::resetMission
                 ) else OperatorSeatPage(
-                    session = session, missionIndex = missionIndex, onMission = ::selectMission,
+                    session = session, rig = rig, missionIndex = missionIndex, onMission = ::selectMission,
                     onRotate = { direction, rpm ->
                         session = TrainingEngine.orient(session, direction, rpm)
                     },
@@ -181,6 +186,7 @@ fun DrillSchoolApp() {
                     },
                     onMove = ::move,
                     onPullBack = { session = TrainingEngine.pullBack(session) },
+                    onAddRod = { session = TrainingEngine.addRod(session) },
                     onReset = ::resetMission,
                     onPeek = { barShotOpen = true },
                     onReplayLocator = { speak("Locator Juan. ${locator.message}", force = true) },
@@ -203,7 +209,22 @@ fun DrillSchoolApp() {
         onDismissRequest = { settingsOpen = false },
         title = { Text("Simulator settings", fontWeight = FontWeight.Black) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Column(Modifier.heightIn(max = 480.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text("Training rig profile", fontWeight = FontWeight.Bold)
+                rigProfiles.forEach { profile ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(selected = rig.id == profile.id, onClick = {
+                            rigId = profile.id
+                            prefs.edit().putString("rig_id", profile.id).apply()
+                            resetMission()
+                        })
+                        Text(profile.displayName, fontSize = 13.sp)
+                    }
+                }
+                Text("Published maximum ratings, not live measurements or recommended operating settings.",
+                    fontSize = 11.sp, color = SchoolMuted)
+                HorizontalDivider()
                 Text("Haptic feedback", fontWeight = FontWeight.Bold)
                 listOf("Off", "Light", "Normal", "Strong").forEachIndexed { index, label ->
                     Row(verticalAlignment = Alignment.CenterVertically) {

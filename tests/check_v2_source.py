@@ -6,7 +6,7 @@ root = Path(__file__).parents[1]
 main = root/'app/src/main'
 kotlin = main/'java/com/forgecrew/drillschool'
 for p in ['MainActivity.kt','OperatorSeatPage.kt','LiveBarShotPage.kt','MissionsPage.kt',
-          'TrainingEngine.kt','TrainingFeedback.kt','LocatorCoach.kt','LearningPages.kt','DrillTheme.kt']:
+          'TrainingEngine.kt','RigProfiles.kt','TrainingFeedback.kt','LocatorCoach.kt','LearningPages.kt','DrillTheme.kt']:
     assert (kotlin/p).is_file(), f'missing {p}'
 for path in (main/'res').rglob('*.xml'):
     ET.parse(path)
@@ -17,7 +17,7 @@ assert 'android.intent.action.TTS_SERVICE' in man
 assert 'android.permission.INTERNET' not in man
 assert 'android.permission.ACCESS_FINE_LOCATION' not in man
 app = (root/'app/build.gradle.kts').read_text()
-assert 'versionName = "0.2.0"' in app
+assert 'versionName = "0.3.0"' in app
 assert 'applicationId = "com.forgecrew.drillschool"' in app
 page = (kotlin/'OperatorSeatPage.kt').read_text()
 assert 'Modifier.weight(1f)' in page and 'OperatorControlDock(' in page

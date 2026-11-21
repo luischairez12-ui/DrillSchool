@@ -28,6 +28,7 @@ import kotlin.math.sin
 @Composable
 fun LiveBarShotPage(
     session: SimState,
+    rig: RigProfile,
     onBack: () -> Unit,
     onReset: () -> Unit
 ) {
@@ -75,6 +76,49 @@ fun LiveBarShotPage(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 DashboardMetric("CLOCK", "${session.lastClock} o'clock", Modifier.weight(1f))
                 DashboardMetric("DISTANCE", "${oneDecimal(session.stationFeet)} ft", Modifier.weight(1f))
+            }
+        }
+        item {
+            SchoolCard {
+                Eyebrow("RIG REFERENCE • PUBLISHED MAXIMUM RATINGS")
+                Text(rig.displayName, color = DeepSteel, fontSize = 17.sp,
+                    fontWeight = FontWeight.Black)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    SubText("Rod length")
+                    Text("${oneDecimal(rig.rodFeet)} ft nominal", color = DeepSteel, fontWeight = FontWeight.Bold)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    SubText("Rated thrust / pullback")
+                    Text("${rig.thrustLb / 1000}k / ${rig.pullbackLb / 1000}k lb", color = DeepSteel)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    SubText("Max spindle torque / speed")
+                    Text("${rig.maxTorqueFtLb} ft-lb / ${rig.maxSpindleRpm} RPM", color = DeepSteel)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    SubText("Maximum drilling-fluid pressure")
+                    Text("${rig.maxFluidPsi} PSI", color = DeepSteel, fontWeight = FontWeight.Bold)
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    SubText("Maximum drilling-fluid flow")
+                    Text("${rig.maxFluidGpm} GPM", color = DeepSteel)
+                }
+                if (rig.torqueNote.isNotEmpty()) SubText(rig.torqueNote)
+                SubText("These are manufacturer/dealer rating limits, NOT live readings, " +
+                    "working targets, or safe pressure settings. Hydraulic thrust and rotation " +
+                    "pressure are different from drilling-fluid pressure.")
+                SubText(rig.modelYearNote + " • Verify the exact machine and rod configuration.")
+            }
+        }
+        item {
+            SchoolCard {
+                Eyebrow("CURRENT SIMULATED ROD")
+                Text("Rod ${session.rodNumber} • " +
+                    "${oneDecimal((session.stationFeet - (session.rodNumber - 1) * rig.rodFeet).coerceIn(0.0, rig.rodFeet))}" +
+                    " / ${oneDecimal(rig.rodFeet)} ft", color = DeepSteel, fontWeight = FontWeight.Bold)
+                if (session.awaitingNextRod) {
+                    SubText("End of rod reached. Return to the Operator Seat to connect the next simulated rod.")
+                }
             }
         }
         item {
