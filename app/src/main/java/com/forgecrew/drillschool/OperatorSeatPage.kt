@@ -82,6 +82,9 @@ fun OperatorSeatPage(
     LaunchedEffect(thrust, rotation, session.phase, session.awaitingNextRod) {
         if (thrust == 0 || session.phase != SimPhase.RUNNING ||
             session.awaitingNextRod) return@LaunchedEffect
+        // First step is applied on touch-down so fast taps are never lost.
+        // Repetition begins after a short hold, avoiding a double first step.
+        delay(520)
         while (isActive && currentSession.phase == SimPhase.RUNNING &&
             !currentSession.awaitingNextRod) {
             if (thrust > 0) {
@@ -266,7 +269,15 @@ fun OperatorSeatPage(
                         icon = Icons.Outlined.ArrowUpward,
                         enabled = session.phase == SimPhase.RUNNING &&
                             !session.awaitingNextRod,
-                        onHeld = { thrustAxis = if (it) -1f else 0f },
+                        onHeld = { pressed ->
+                            if (pressed) {
+                                thrustAxis = -1f
+                                onMove(
+                                    if (rotation != 0) SimMode.ROTATE else SimMode.STEER,
+                                    session.lastClock
+                                )
+                            } else thrustAxis = 0f
+                        },
                         modifier = Modifier.fillMaxWidth().weight(1f)
                     )
                     ThrustHoldButton(
@@ -274,7 +285,12 @@ fun OperatorSeatPage(
                         icon = Icons.Outlined.ArrowDownward,
                         enabled = session.phase == SimPhase.RUNNING &&
                             session.shots.size > 1,
-                        onHeld = { thrustAxis = if (it) 1f else 0f },
+                        onHeld = { pressed ->
+                            if (pressed) {
+                                thrustAxis = 1f
+                                onPullBack()
+                            } else thrustAxis = 0f
+                        },
                         modifier = Modifier.fillMaxWidth().weight(1f)
                     )
                     Text(
