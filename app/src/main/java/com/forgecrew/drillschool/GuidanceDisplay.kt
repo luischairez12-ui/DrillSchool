@@ -1,7 +1,6 @@
 package com.forgecrew.drillschool
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -10,21 +9,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.max
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.min
+import kotlin.math.sin
 
 /**
- * Visual training mock of a rig-side guidance display. Never claims to reproduce
- * original DigiTrak / Subsite firmware or represent live receiver telemetry.
+ * BoreLab-color operator guidance panel modeled after the user's real
+ * DCI/Aurora and Subsite reference photographs, with independently drawn UI.
+ * It is not their software or a representation of measured telemetry.
  */
 @Composable
 fun GuidanceDisplayPanel(
@@ -34,211 +34,302 @@ fun GuidanceDisplayPanel(
     onViewChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val reading = trainingGuidanceReading(session)
+    val isSubsite = style == GuidanceStyle.SUBSITE
     Surface(
         modifier = modifier,
-        color = Color(0xFF182B35),
-        shape = RoundedCornerShape(19.dp),
+        color = Color(0xFF2D3B45),
+        shape = RoundedCornerShape(18.dp),
         shadowElevation = 2.dp
     ) {
-        Column(Modifier.fillMaxSize().padding(7.dp)) {
+        Column(
+            Modifier.fillMaxSize().padding(5.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
             Row(
-                Modifier.fillMaxWidth().height(30.dp),
+                Modifier.fillMaxWidth().height(29.dp).padding(start = 6.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    if (style == GuidanceStyle.DIGITRAK) "F5-STYLE • TRAINING"
-                    else "SUBSITE-STYLE • TRAINING",
-                    color = Color.White, fontSize = 10.sp,
-                    fontWeight = FontWeight.ExtraBold,
+                    if (isSubsite) "SUBSITE-INSPIRED • OPERATOR"
+                    else "DIGITRAK-INSPIRED • OPERATOR",
                     modifier = Modifier.weight(1f),
-                    maxLines = 1, overflow = TextOverflow.Ellipsis
+                    color = Color.White, fontSize = 9.sp,
+                    fontWeight = FontWeight.ExtraBold, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Row {
-                    listOf(false, true).forEach { dimension ->
-                        val selected = threeD == dimension
-                        Surface(
-                            onClick = { onViewChange(dimension) },
-                            color = if (selected) OrangeDark else Color(0xFF304452),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text(if (dimension) "3D" else "2D",
-                                color = Color.White, fontSize = 11.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp))
-                        }
-                        Spacer(Modifier.width(4.dp))
+                listOf(false, true).forEach { mode ->
+                    Surface(
+                        onClick = { onViewChange(mode) },
+                        color = if (mode == threeD) OrangeDark else Color(0xFF53616C),
+                        shape = RoundedCornerShape(7.dp),
+                        modifier = Modifier.padding(end = 3.dp)
+                    ) {
+                        Text(
+                            if (mode) "3D" else "2D",
+                            color = Color.White, fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
+                        )
                     }
                 }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            Surface(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                color = if (isSubsite) Color(0xFFFCFCF6) else Color(0xFFF8FAFD),
+                shape = RoundedCornerShape(11.dp)
             ) {
-                Column(
-                    Modifier.width(76.dp).fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    GuidanceMetric("DEPTH", oneDecimal(session.depthFeet) + " ft")
-                    GuidanceMetric("PITCH", oneDecimal(session.pitchPercent) + "%")
-                    GuidanceMetric("CLOCK", session.lastClock.toString() + ":00")
-                    GuidanceMetric("DISTANCE", oneDecimal(
-                        (session.mission.totalFeet - session.stationFeet).coerceAtLeast(0.0)
-                    ) + " ft")
-                }
-                Box(
-                    modifier = Modifier.weight(1f).fillMaxHeight()
-                        .background(Color(0xFFD5EFF9), RoundedCornerShape(9.dp))
-                ) {
-                    TrainingGuidanceCanvas(session, threeD, Modifier.fillMaxSize())
-                }
-                Column(
-                    Modifier.width(68.dp).fillMaxHeight(),
-                    verticalArrangement = Arrangement.SpaceEvenly
-                ) {
-                    GuidanceMetric("LINK", "SIM")
-                    GuidanceMetric("TX TEMP", "—")
-                    GuidanceMetric("MUD PSI", "—")
-                    GuidanceMetric("FLOW", "—")
+                Column(Modifier.fillMaxSize().padding(3.dp)) {
+                    Row(
+                        Modifier.fillMaxWidth().height(19.dp)
+                            .padding(horizontal = 3.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            if (isSubsite) "GUIDANCE • TRAINING" else "SIM / CH —",
+                            color = SchoolMuted, fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            if (threeD) "TARGET STEERING • 3D" else "CLASSIC VIEW • 2D",
+                            color = OrangeDark, fontSize = 9.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Column(
+                            Modifier.width(94.dp).fillMaxHeight()
+                                .padding(start = 1.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            GuidanceClock(
+                                clock = reading.clock, isSubsite = isSubsite,
+                                modifier = Modifier.fillMaxWidth().weight(1f)
+                            )
+                            Text(
+                                "PITCH " + signedPercent(reading.pitchPercent),
+                                color = DeepSteel, fontWeight = FontWeight.Black,
+                                fontSize = 12.sp, maxLines = 1
+                            )
+                            Text(
+                                "DEPTH " + oneDecimal(reading.depthFeet) + " ft",
+                                color = SchoolMuted, fontSize = 10.sp,
+                                maxLines = 1
+                            )
+                            Spacer(Modifier.height(3.dp))
+                        }
+                        Box(
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            TrainingTargetView(
+                                reading = reading, threeD = threeD,
+                                isSubsite = isSubsite,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                            Text(
+                                "SIMULATED TARGET",
+                                modifier = Modifier.align(Alignment.BottomCenter)
+                                    .padding(bottom = 3.dp),
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = SchoolMuted, maxLines = 1
+                            )
+                        }
+                        Column(
+                            modifier = Modifier.width(62.dp).fillMaxHeight(),
+                            verticalArrangement = Arrangement.SpaceEvenly
+                        ) {
+                            GuidanceStatus("LINK", "SIM", true)
+                            GuidanceStatus("BATTERY", "—")
+                            GuidanceStatus("TEMP", "—")
+                            GuidanceStatus("FLUID PSI", "—")
+                        }
+                    }
+                    HorizontalDivider(color = Color(0xFFE0E6EC), thickness = 1.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().height(31.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        GuidanceFooterMetric("MODEL ΔL",
+                            signedFeet(reading.lateralDifferenceAtExitFeet), Modifier.weight(1f))
+                        GuidanceFooterMetric("MODEL ΔD",
+                            signedFeet(reading.depthDifferenceAtExitFeet), Modifier.weight(1f))
+                        GuidanceFooterMetric("TO EXIT",
+                            oneDecimal(reading.distanceToExitFeet) + " ft", Modifier.weight(1f))
+                    }
                 }
             }
-            Spacer(Modifier.height(4.dp))
-            Row(
-                Modifier.fillMaxWidth().height(23.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("NOT LIVE TELEMETRY", color = Color(0xFFFFC389),
-                    fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                Text(
-                    "ROD " + session.rodNumber +
-                        "  •  " + oneDecimal(session.stationFeet) + " ft",
-                    color = Color.White, fontSize = 10.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-            }
+            Text(
+                "ILLUSTRATIVE GAME READINGS • NO LIVE LOCATOR CONNECTION",
+                modifier = Modifier.fillMaxWidth().padding(start = 4.dp, bottom = 1.dp),
+                fontSize = 8.sp, color = Color(0xFFFFCF9C),
+                fontWeight = FontWeight.SemiBold, maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+private fun signedPercent(value: Double): String =
+    (if (value > 0.001) "+" else "") + oneDecimal(value) + "%"
+
+private fun signedFeet(value: Double): String =
+    (if (value > 0.001) "+" else "") + oneDecimal(value) + " ft"
+
+@Composable
+private fun GuidanceFooterMetric(label: String, value: String, modifier: Modifier) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(label, color = SchoolMuted, fontSize = 8.sp,
+            fontWeight = FontWeight.Bold, maxLines = 1)
+        Text(value, color = DeepSteel, fontSize = 10.sp,
+            fontWeight = FontWeight.Black, maxLines = 1)
+    }
+}
+
+@Composable
+private fun GuidanceStatus(label: String, value: String, accent: Boolean = false) {
+    Surface(
+        color = if (accent) Color(0xFFEAF3E5) else Color(0xFFEDF1F4),
+        shape = RoundedCornerShape(5.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp, horizontal = 3.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(label, color = SchoolMuted, fontSize = 8.sp,
+                maxLines = 1, fontWeight = FontWeight.Bold)
+            Text(value, color = if (accent) Color(0xFF3D8B4D) else DeepSteel,
+                fontWeight = FontWeight.Black, fontSize = 11.sp, maxLines = 1)
         }
     }
 }
 
 @Composable
-private fun GuidanceMetric(title: String, value: String) {
-    Column {
-        Text(title, color = Color(0xFFADC1CA),
-            fontSize = 9.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-        Text(value, color = Color.White,
-            fontWeight = FontWeight.ExtraBold, fontSize = 13.sp,
-            maxLines = 1, overflow = TextOverflow.Ellipsis)
+private fun GuidanceClock(
+    clock: Int,
+    isSubsite: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier, contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val center = Offset(size.width / 2f, size.height / 2f)
+            val radius = min(size.width, size.height) * 0.43f
+            if (radius <= 1f) return@Canvas
+            drawCircle(
+                if (isSubsite) Color(0xFFECF0ED) else Color(0xFFE9F1F5),
+                radius, center
+            )
+            drawCircle(
+                Color(0xFF75818B), radius, center, style = Stroke(2.dp.toPx())
+            )
+            drawCircle(Color.White, radius * .67f, center)
+            for (i in 0 until 12) {
+                val angle = -PI / 2.0 + i * PI / 6.0
+                val from = Offset(
+                    center.x + cos(angle).toFloat() * radius * .77f,
+                    center.y + sin(angle).toFloat() * radius * .77f
+                )
+                val to = Offset(
+                    center.x + cos(angle).toFloat() * radius * .94f,
+                    center.y + sin(angle).toFloat() * radius * .94f
+                )
+                drawLine(Color(0xFF5A6771), from, to,
+                    if (i % 3 == 0) 2.2.dp.toPx() else 1.1.dp.toPx())
+            }
+            val angle = -PI / 2.0 + (clock % 12) * PI / 6.0
+            drawLine(
+                if (isSubsite) Color(0xFF248F6D) else Color(0xFFE64D32),
+                center,
+                Offset(
+                    center.x + cos(angle).toFloat() * radius * .85f,
+                    center.y + sin(angle).toFloat() * radius * .85f
+                ),
+                4.dp.toPx(), cap = StrokeCap.Round
+            )
+            drawCircle(DeepSteel, 2.6.dp.toPx(), center)
+        }
+        Text(
+            clock.toString() + ":00",
+            fontSize = 16.sp,
+            color = DeepSteel, fontWeight = FontWeight.Black
+        )
+        Text(
+            "12", fontSize = 8.sp, fontWeight = FontWeight.ExtraBold,
+            color = DeepSteel, modifier = Modifier.align(Alignment.TopCenter).padding(top = 5.dp)
+        )
+        Text(
+            "6", fontSize = 8.sp, fontWeight = FontWeight.ExtraBold,
+            color = DeepSteel, modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 5.dp)
+        )
     }
 }
 
 @Composable
-private fun TrainingGuidanceCanvas(
-    session: SimState,
+private fun TrainingTargetView(
+    reading: TrainingGuidanceReading,
     threeD: Boolean,
+    isSubsite: Boolean,
     modifier: Modifier
 ) {
     Canvas(modifier) {
-        val w = size.width
-        val h = size.height
-        val horizon = h * 0.29f
-        drawRect(
-            brush = Brush.verticalGradient(
-                listOf(Color(0xFFBCE7FF), Color(0xFFE6F5FF)),
-                startY = 0f, endY = horizon
-            ),
-            size = Size(w, horizon)
-        )
-        drawRect(
-            brush = Brush.verticalGradient(
-                listOf(Color(0xFFE0B587), Color(0xFFB98658), Color(0xFF946642)),
-                startY = horizon, endY = h
-            ),
-            topLeft = Offset(0f, horizon),
-            size = Size(w, h - horizon)
-        )
-        drawLine(
-            Color(0xFF70A960),
-            Offset(0f, horizon), Offset(w, horizon),
-            strokeWidth = 3.dp.toPx()
-        )
-
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val radius = min(size.width, size.height) * .39f
+        if (radius <= 1f) return@Canvas
+        val axis = Color(0xFF364A55)
         if (threeD) {
-            // A stylized perspective training view, not OEM 3D target steering.
-            val vanishing = Offset(w * .53f, horizon)
-            listOf(0f, .25f, .5f, .75f, 1f).forEach { t ->
-                drawLine(Color(0x66FFF0DD), vanishing,
-                    Offset(w * t, h), strokeWidth = 1.dp.toPx())
+            // Three-dimensional *styled* target interpretation, not DCI software.
+            listOf(1f, .72f, .44f).forEach { fraction ->
+                val rx = radius * fraction
+                val ry = rx * .61f
+                drawOval(
+                    color = Color(0xFFAFBEC7),
+                    topLeft = Offset(center.x - rx, center.y - ry),
+                    size = Size(rx * 2f, ry * 2f),
+                    style = Stroke(1.dp.toPx())
+                )
             }
-            listOf(.48f, .66f, .83f).forEach { t ->
-                val y = h * t
-                drawLine(Color(0x33FFF0DD), Offset(0f, y),
-                    Offset(w, y), strokeWidth = 1.dp.toPx())
+            listOf(-.7f, 0f, .7f).forEach { t ->
+                drawLine(Color(0xFFCBD4DB),
+                    Offset(center.x + radius * t * .4f, center.y - radius * .92f),
+                    Offset(center.x + radius * t, center.y + radius * .92f),
+                    1.dp.toPx()
+                )
             }
         } else {
-            listOf(.47f, .68f, .85f).forEach { y ->
-                drawLine(
-                    Color(0x559E6F49),
-                    Offset(0f, h * y), Offset(w, h * y),
-                    strokeWidth = 2.dp.toPx()
-                )
-            }
+            drawCircle(axis, radius, center, style = Stroke(1.8.dp.toPx()))
+            drawCircle(Color(0xFFCDD5DD), radius * .55f, center,
+                style = Stroke(1.dp.toPx()))
         }
-
-        val total = max(session.mission.totalFeet, 1.0)
-        fun position(station: Double, depth: Double, lateral: Double): Offset {
-            val x = (station / total).toFloat().coerceIn(0f, 1f)
-            val y = (depth.coerceIn(0.0, 12.0) / 12.0).toFloat()
-            return if (threeD) {
-                Offset(
-                    w * (.10f + .82f * x),
-                    h * (.39f + .42f * y + lateral.toFloat() * .005f)
-                )
-            } else {
-                Offset(
-                    w * (.06f + .88f * x),
-                    h * (.34f + .60f * y)
-                )
-            }
-        }
-
-        val target = position(
-            session.mission.totalFeet,
-            session.mission.exitDepthFeet,
-            session.mission.exitLateralFeet
+        drawLine(axis,
+            Offset(center.x - radius, center.y),
+            Offset(center.x + radius, center.y),
+            1.3.dp.toPx()
         )
-        val first = session.shots.firstOrNull()
-        if (first != null) {
-            val guide = Path()
-            val from = position(first.stationFeet, first.depthFeet, first.lateralFeet)
-            guide.moveTo(from.x, from.y)
-            guide.lineTo(target.x, target.y)
-            drawPath(
-                guide, Color(0xFFFCF6EB),
-                style = Stroke(
-                    width = 2.dp.toPx(),
-                    pathEffect = PathEffect.dashPathEffect(
-                        floatArrayOf(7.dp.toPx(), 6.dp.toPx())
-                    )
-                )
-            )
-
-            val bore = Path()
-            session.shots.forEachIndexed { index, shot ->
-                val p = position(shot.stationFeet, shot.depthFeet, shot.lateralFeet)
-                if (index == 0) bore.moveTo(p.x, p.y)
-                else bore.lineTo(p.x, p.y)
-            }
-            drawPath(bore, Color(0xFFF47D0C),
-                style = Stroke(4.dp.toPx(), cap = StrokeCap.Round))
-
-            val last = session.shots.last()
-            val current = position(last.stationFeet, last.depthFeet, last.lateralFeet)
-            drawCircle(DeepSteel, 7.dp.toPx(), current)
-            drawCircle(OrangeDark, 3.dp.toPx(), current)
-        }
-        drawCircle(Color.White, 9.dp.toPx(), target)
-        drawCircle(OrangeDark, 7.dp.toPx(), target,
-            style = Stroke(2.5.dp.toPx()))
-        drawCircle(OrangeDark, 2.5.dp.toPx(), target)
+        drawLine(
+            Color(0xFFD44738),
+            Offset(center.x, center.y - radius),
+            Offset(center.x, center.y + radius),
+            2.4.dp.toPx()
+        )
+        val marker = Offset(
+            center.x + reading.targetX * radius * .68f,
+            center.y + reading.targetY * radius * .68f
+        )
+        val targetColor = if (isSubsite) Color(0xFF4A9C69) else Color(0xFF567FDA)
+        drawCircle(targetColor.copy(alpha = .22f), radius * .23f, marker)
+        drawCircle(targetColor, radius * .08f, marker)
+        drawCircle(DeepSteel, radius * .028f, marker)
+        drawCircle(Color(0xFFDF7011), radius * .07f, center,
+            style = Stroke(1.5.dp.toPx()))
     }
 }
