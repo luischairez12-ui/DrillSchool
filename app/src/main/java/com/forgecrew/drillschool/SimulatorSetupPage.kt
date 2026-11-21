@@ -15,8 +15,9 @@ import androidx.compose.ui.unit.sp
 
 /** These are our training layouts; they are not copies of OEM firmware. */
 enum class GuidanceStyle(val title: String, val description: String) {
-    DIGITRAK("DigiTrak-inspired", "Compact clock, pitch and depth view"),
-    SUBSITE("Subsite-inspired", "High-contrast guidance and tracking")
+    DIGITRAK("DigiTrak-inspired", "Large toolface clock, center target, locator distance"),
+    MAG9("MAG 9-inspired", "Toolface, pitch, projection, rod and centered target"),
+    SUBSITE("Subsite-inspired", "Profile-style guidance and tracking")
 }
 
 enum class PracticeMode(val label: String) {
