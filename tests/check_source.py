@@ -14,6 +14,9 @@ required = [
     'app/src/main/java/com/forgecrew/drillschool/TrainingEngine.kt',
     'app/src/main/java/com/forgecrew/drillschool/DrillTheme.kt',
     'app/src/main/java/com/forgecrew/drillschool/SimulatorPage.kt',
+    'app/src/main/java/com/forgecrew/drillschool/GuidanceDisplay.kt',
+    'app/src/main/java/com/forgecrew/drillschool/LocatorPeekDialog.kt',
+    'app/src/main/java/com/forgecrew/drillschool/TrainingGuidanceReading.kt',
     'app/src/main/java/com/forgecrew/drillschool/LearningPages.kt',
 ]
 for f in required:
