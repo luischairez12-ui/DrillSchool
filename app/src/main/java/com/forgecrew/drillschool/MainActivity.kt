@@ -199,7 +199,9 @@ fun DrillSchoolApp() {
             }
         },
         bottomBar = {
-            NavigationBar(
+            // Active operator training uses the full height for the real-world
+            // guidance screen and two controls; Back is in the cockpit header.
+            if (!(tab == "Simulator" && sessionActive)) NavigationBar(
                 containerColor = Color.White,
                 tonalElevation = 2.dp,
                 modifier = Modifier.navigationBarsPadding()
