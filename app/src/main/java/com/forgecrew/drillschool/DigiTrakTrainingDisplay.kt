@@ -57,13 +57,13 @@ fun DigiTrakTrainingDisplay(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    DigiToolfaceDial(value.clock, Modifier.fillMaxWidth().weight(1f))
+                    DigiToolfaceDial(session.toolfaceTick, Modifier.fillMaxWidth().weight(1f))
                     Text("PITCH", fontSize = 9.sp, color = SchoolMuted,
                         fontWeight = FontWeight.Bold)
                     Text(signedTrainingPercent(value.pitchPercent),
                         fontSize = 21.sp, color = DeepSteel,
                         fontWeight = FontWeight.Black, maxLines = 1)
-                    Text("DEPTH " + oneDecimal(value.depthFeet) + " ft",
+                    Text("HEAD " + feetAndInches(value.depthFeet),
                         fontSize = 10.sp, color = DeepSteel,
                         fontWeight = FontWeight.SemiBold, maxLines = 1)
                     Spacer(Modifier.height(4.dp))
@@ -74,7 +74,7 @@ fun DigiTrakTrainingDisplay(
                         DigiTargetReticle(value, threeD, Modifier.fillMaxSize())
                     }
                     Text(
-                        "PROJECTED EXIT • GAME MODEL",
+                        "ALIGN THE TARGET TO CENTER",
                         fontSize = 8.sp, color = SchoolMuted,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -83,13 +83,13 @@ fun DigiTrakTrainingDisplay(
                     Spacer(Modifier.height(5.dp))
                 }
                 Column(
-                    Modifier.width(55.dp).fillMaxHeight(),
+                    Modifier.width(79.dp).fillMaxHeight(),
                     verticalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    DigiStatus("LINK", "SIM", true)
-                    DigiStatus("BATT", "—")
-                    DigiStatus("TEMP", "—")
-                    DigiStatus("PSI", "—")
+                    DigiStatus("TO LOCATOR", feetAndInches(value.distanceToLocatorFeet), true)
+                    DigiStatus("PROJECTED", feetAndInches(value.projectedDepthAtLocatorFeet))
+                    DigiStatus("AT LOCATOR", feetAndInches(value.targetDepthAtLocatorFeet))
+                    DigiStatus("ROD", value.rodNumber.toString())
                 }
             }
             Surface(color = Color(0xFFE2F0F8)) {
@@ -99,17 +99,17 @@ fun DigiTrakTrainingDisplay(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     SlimGuidanceMetric(
-                        "H OFFSET", signedTrainingFeet(value.lateralDifferenceAtExitFeet),
+                        "SIDE Δ", signedTrainingFeet(value.lateralErrorAtLocatorFeet),
                         Modifier.weight(1f)
                     )
                     VerticalDivider(Modifier.height(29.dp), color = Color(0xFFB6CEDD))
                     SlimGuidanceMetric(
-                        "V OFFSET", signedTrainingFeet(value.depthDifferenceAtExitFeet),
+                        "DEPTH Δ", signedTrainingFeet(value.verticalErrorAtLocatorFeet),
                         Modifier.weight(1f)
                     )
                     VerticalDivider(Modifier.height(29.dp), color = Color(0xFFB6CEDD))
                     SlimGuidanceMetric(
-                        "TO EXIT", oneDecimal(value.distanceToExitFeet) + " ft",
+                        "TO LOCATOR", oneDecimal(value.distanceToLocatorFeet) + " ft",
                         Modifier.weight(1f)
                     )
                 }
@@ -141,7 +141,7 @@ private fun DigiStatus(label: String, value: String, live: Boolean = false) {
 }
 
 @Composable
-private fun DigiToolfaceDial(clock: Int, modifier: Modifier) {
+private fun DigiToolfaceDial(toolfaceTick: Int, modifier: Modifier) {
     Box(modifier, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val middle = Offset(size.width / 2f, size.height / 2f)
@@ -166,7 +166,7 @@ private fun DigiToolfaceDial(clock: Int, modifier: Modifier) {
                     if (index % 3 == 0) 2.dp.toPx() else 1.dp.toPx()
                 )
             }
-            val position = -PI / 2 + (clock % 12) * PI / 6
+            val position = -PI / 2 + (toolfaceTick % 24) * PI / 12
             drawLine(
                 Color(0xFFE14A34), middle,
                 Offset(
@@ -176,7 +176,7 @@ private fun DigiToolfaceDial(clock: Int, modifier: Modifier) {
                 5.dp.toPx(), cap = StrokeCap.Round
             )
         }
-        Text(clock.toString() + ":00",
+        Text(clockLabelFromTick(toolfaceTick),
             fontSize = 20.sp,
             color = DeepSteel,
             fontWeight = FontWeight.Black)
