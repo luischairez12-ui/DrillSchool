@@ -85,3 +85,12 @@ The Vermeer profiles retain the existing *dual training-joystick* user interface
 - JT20 product specs: https://www.ditchwitchwest.com/new-equipment/all-directional-drills/directional-drills/jt20-directional-drill/
 - JT20 operator manual: https://www.ditchwitchmidwest.com/fckimages/pdfs/manuals/Directional%20Drills/JT20%20operator_s%20manual%20%28ID0318836_09_SVC%29.pdf
 - JT21 manufacturer brochure: https://www.ditchwitch.com/wp-content/uploads/2024/11/JT21-Brochure.pdf
+
+
+## BoreLab-style Operator Cockpit — v0.4.0
+
+The app opens at a Training Academy home screen, never in an active mission. Simulator launches through a setup screen with Free Practice (no automatic locator voice) or Guided Mission (scripted locator voice). Mission, rig and display choices are available before launch.
+
+The operator seat uses the approved orange-and-white BoreLab concept: a single dark rig-side instrument panel with depth/pitch/clock/distance and live *game* path, an illustrative 2D/3D toggle, mission/rod status, locator message, left Rotate and right Push/Pull controls. Multitouch supports rotating while holding thrust. The actual manufacturer's display interfaces are not reproduced; DigiTrak-inspired and Subsite-inspired choices are independent of the selected drill rig.
+
+All telemetry is simulated. Real beacon temperature, mud PSI, fluid flow and link strength are explicitly not available. The game doesn't estimate hydraulic thrust force, downhole pressure, or safe operating conditions. Real equipment procedures and utility clearances require manufacturer training and local safety rules.

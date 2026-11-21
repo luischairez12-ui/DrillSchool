@@ -44,7 +44,8 @@ fun DrillSchoolApp() {
     val prefs = remember(context) {
         context.applicationContext.getSharedPreferences("drillschool_training", Context.MODE_PRIVATE)
     }
-    var tab by remember { mutableStateOf("Simulator") }
+    var tab by remember { mutableStateOf("Home") }
+    var sessionActive by remember { mutableStateOf(false) }
     var barShotOpen by remember { mutableStateOf(false) }
     var missionIndex by remember { mutableIntStateOf(0) }
     var session by remember { mutableStateOf(SimState(trainingMissions[0])) }
@@ -55,6 +56,21 @@ fun DrillSchoolApp() {
     var voiceEnabled by remember { mutableStateOf(prefs.getBoolean("locator_voice", true)) }
     var rigId by remember { mutableStateOf(prefs.getString("rig_id", "d24x40s3") ?: "d24x40s3") }
     val rig = getRigProfile(rigId)
+    var displayStyle by remember {
+        mutableStateOf(
+            runCatching {
+                GuidanceStyle.valueOf(prefs.getString("display_style", "DIGITRAK") ?: "DIGITRAK")
+            }.getOrDefault(GuidanceStyle.DIGITRAK)
+        )
+    }
+    var threeD by remember { mutableStateOf(prefs.getBoolean("guidance_3d", false)) }
+    var practiceMode by remember {
+        mutableStateOf(
+            runCatching {
+                PracticeMode.valueOf(prefs.getString("practice_mode", "FREE") ?: "FREE")
+            }.getOrDefault(PracticeMode.FREE)
+        )
+    }
     var ttsReady by remember { mutableStateOf(false) }
     var tts by remember { mutableStateOf<TextToSpeech?>(null) }
     val locator = LocatorCoach.current(session)
@@ -83,8 +99,9 @@ fun DrillSchoolApp() {
         if ((!force && !voiceEnabled) || !ttsReady) return
         tts?.speak(message, TextToSpeech.QUEUE_FLUSH, null, "drillschool_locator")
     }
-    LaunchedEffect(tab, barShotOpen, locator.key, session.mission.id, ttsReady, voiceEnabled) {
-        if (tab == "Simulator" && !barShotOpen && ttsReady && voiceEnabled) {
+    LaunchedEffect(tab, sessionActive, practiceMode, barShotOpen, locator.key, session.mission.id, ttsReady, voiceEnabled) {
+        if (tab == "Simulator" && sessionActive && practiceMode == PracticeMode.GUIDED &&
+            !barShotOpen && ttsReady && voiceEnabled) {
             speak("Locator Juan. ${locator.message}")
         }
     }
@@ -102,6 +119,7 @@ fun DrillSchoolApp() {
         missionIndex = index
         session = SimState(trainingMissions[index])
         barShotOpen = false
+        sessionActive = false
         lastWinKey = ""
     }
     fun move(mode: SimMode, clock: Int) {
@@ -127,31 +145,65 @@ fun DrillSchoolApp() {
     Scaffold(
         containerColor = SchoolBg,
         topBar = {
-            Row(Modifier.fillMaxWidth().background(Color.White)
-                .statusBarsPadding().padding(horizontal = 15.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                Surface(color = OrangeDark, shape = RoundedCornerShape(12.dp)) {
-                    Box(Modifier.size(43.dp), contentAlignment = Alignment.Center) {
-                        Icon(Icons.Outlined.Construction, null, tint = Color.White,
-                            modifier = Modifier.size(26.dp))
+            if (tab == "Simulator" && sessionActive) {
+                Row(
+                    Modifier.fillMaxWidth().background(Color.White)
+                        .statusBarsPadding().height(48.dp)
+                        .padding(horizontal = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = {
+                        sessionActive = false
+                        tts?.stop()
+                    }, modifier = Modifier.size(40.dp)) {
+                        Icon(Icons.Outlined.ArrowBack, "Leave operator seat", tint = DeepSteel)
+                    }
+                    Column(Modifier.weight(1f)) {
+                        Text("Operator Seat", fontSize = 16.sp,
+                            fontWeight = FontWeight.Black, color = DeepSteel)
+                        Text(rig.displayName, fontSize = 10.sp, color = SchoolMuted,
+                            maxLines = 1)
+                    }
+                    IconButton(onClick = { settingsOpen = true },
+                        modifier = Modifier.size(38.dp)) {
+                        Icon(Icons.Outlined.Settings, "Settings", tint = DeepSteel)
                     }
                 }
-                Spacer(Modifier.width(9.dp))
-                Column(Modifier.weight(1f)) {
-                    Text("DrillSchool", fontSize = 24.sp, fontWeight = FontWeight.Black, color = DeepSteel)
-                    Text("FORGECREW STUDIOS • HDD TRAINING", fontSize = 9.sp,
-                        letterSpacing = 1.sp, color = OrangeDark, fontWeight = FontWeight.Bold)
-                }
-                Surface(color = OrangePale, shape = RoundedCornerShape(10.dp)) {
-                    Text("V2", modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp),
-                        color = OrangeDark, fontWeight = FontWeight.Black)
+            } else {
+                Row(
+                    Modifier.fillMaxWidth().background(Color.White)
+                        .statusBarsPadding()
+                        .padding(horizontal = 12.dp, vertical = 9.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(color = OrangeDark, shape = RoundedCornerShape(12.dp)) {
+                        Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Outlined.Construction, null, tint = Color.White,
+                                modifier = Modifier.size(24.dp))
+                        }
+                    }
+                    Spacer(Modifier.width(9.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("DrillSchool", fontSize = 23.sp,
+                            fontWeight = FontWeight.Black, color = DeepSteel)
+                        Text("FORGECREW STUDIOS • HDD TRAINING", fontSize = 8.sp,
+                            color = OrangeDark, fontWeight = FontWeight.Bold)
+                    }
+                    Surface(color = OrangePale, shape = RoundedCornerShape(11.dp)) {
+                        Text("V4", Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                            color = OrangeDark, fontWeight = FontWeight.Black)
+                    }
                 }
             }
         },
         bottomBar = {
-            NavigationBar(containerColor = Color.White, tonalElevation = 2.dp,
-                modifier = Modifier.navigationBarsPadding()) {
+            NavigationBar(
+                containerColor = Color.White,
+                tonalElevation = 2.dp,
+                modifier = Modifier.navigationBarsPadding()
+            ) {
                 listOf(
+                    Triple("Home", Icons.Outlined.Home, "Home"),
                     Triple("Simulator", Icons.Outlined.SportsEsports, "Simulator"),
                     Triple("Lessons", Icons.Outlined.MenuBook, "Lessons"),
                     Triple("Missions", Icons.Outlined.Explore, "Missions"),
@@ -159,11 +211,20 @@ fun DrillSchoolApp() {
                 ).forEach { (label, icon, destination) ->
                     NavigationBarItem(
                         selected = tab == destination,
-                        onClick = { tab = destination; if (destination != "Simulator") barShotOpen = false },
-                        icon = { Icon(icon, null) }, label = { Text(label, fontSize = 10.sp) },
+                        onClick = {
+                            tab = destination
+                            if (destination != "Simulator") {
+                                barShotOpen = false
+                                tts?.stop()
+                            }
+                        },
+                        icon = { Icon(icon, null) },
+                        label = { Text(label, fontSize = 9.sp, maxLines = 1) },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = OrangeDark, selectedTextColor = OrangeDark,
-                            indicatorColor = OrangePale, unselectedIconColor = SchoolMuted,
+                            selectedIconColor = OrangeDark,
+                            selectedTextColor = OrangeDark,
+                            indicatorColor = OrangePale,
+                            unselectedIconColor = SchoolMuted,
                             unselectedTextColor = SchoolMuted
                         )
                     )
@@ -173,33 +234,95 @@ fun DrillSchoolApp() {
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (tab) {
-                "Simulator" -> if (barShotOpen) LiveBarShotPage(
-                    session = session, rig = rig,
-                    onBack = { barShotOpen = false }, onReset = ::resetMission
-                ) else OperatorSeatPage(
-                    session = session, rig = rig, missionIndex = missionIndex, onMission = ::selectMission,
-                    onRotate = { direction, rpm ->
-                        session = TrainingEngine.orient(session, direction, rpm)
+                "Home" -> TrainingHomePage(
+                    session = session,
+                    rig = rig,
+                    bestScores = scores,
+                    onSimulator = {
+                        sessionActive = false
+                        tab = "Simulator"
                     },
-                    onStopRotation = {
-                        if (session.rotationRpm != 0) session = TrainingEngine.stopRotation(session)
-                    },
-                    onMove = ::move,
-                    onPullBack = { session = TrainingEngine.pullBack(session) },
-                    onAddRod = { session = TrainingEngine.addRod(session) },
-                    onReset = ::resetMission,
-                    onPeek = { barShotOpen = true },
-                    onReplayLocator = { speak("Locator Juan. ${locator.message}", force = true) },
-                    onSettings = { settingsOpen = true },
-                    onHaptic = ::haptic,
-                    voiceEnabled = voiceEnabled
+                    onLessons = { tab = "Lessons" },
+                    onMissions = { tab = "Missions" },
+                    onProgress = { tab = "Progress" },
+                    onRigSettings = { settingsOpen = true },
+                    onResume = {
+                        if (session.phase != SimPhase.RUNNING) resetMission()
+                        barShotOpen = false
+                        sessionActive = true
+                        tab = "Simulator"
+                    }
                 )
+                "Simulator" -> when {
+                    !sessionActive -> SimulatorSetupPage(
+                        session = session,
+                        rig = rig,
+                        displayStyle = displayStyle,
+                        practiceMode = practiceMode,
+                        onStyle = {
+                            displayStyle = it
+                            prefs.edit().putString("display_style", it.name).apply()
+                        },
+                        onMode = {
+                            practiceMode = it
+                            prefs.edit().putString("practice_mode", it.name).apply()
+                        },
+                        onMission = ::selectMission,
+                        onRigSettings = { settingsOpen = true },
+                        onLaunch = {
+                            if (session.phase != SimPhase.RUNNING) resetMission()
+                            barShotOpen = false
+                            sessionActive = true
+                        }
+                    )
+                    barShotOpen -> LiveBarShotPage(
+                        session = session,
+                        rig = rig,
+                        onBack = { barShotOpen = false },
+                        onReset = ::resetMission
+                    )
+                    else -> OperatorSeatPage(
+                        session = session,
+                        rig = rig,
+                        displayStyle = displayStyle,
+                        threeD = threeD,
+                        onThreeD = {
+                            threeD = it
+                            prefs.edit().putBoolean("guidance_3d", it).apply()
+                        },
+                        practiceMode = practiceMode,
+                        onRotate = { direction, rpm ->
+                            session = TrainingEngine.orient(session, direction, rpm)
+                        },
+                        onStopRotation = {
+                            if (session.rotationRpm != 0)
+                                session = TrainingEngine.stopRotation(session)
+                        },
+                        onMove = ::move,
+                        onPullBack = {
+                            session = TrainingEngine.pullBack(session)
+                        },
+                        onAddRod = {
+                            session = TrainingEngine.addRod(session)
+                        },
+                        onReset = ::resetMission,
+                        onPeek = { barShotOpen = true },
+                        onReplayLocator = {
+                            speak("Locator Juan. " + locator.message, force = true)
+                        },
+                        onHaptic = ::haptic,
+                        voiceEnabled = voiceEnabled
+                    )
+                }
                 "Lessons" -> LessonsPage(prefs)
                 "Missions" -> MissionsPage(scores, onPlay = { index ->
-                    selectMission(index); tab = "Simulator"
+                    selectMission(index)
+                    practiceMode = PracticeMode.GUIDED
+                    tab = "Simulator"
                 })
                 else -> TrainingProgressPage(scores, onPractice = { index ->
-                    selectMission(index); tab = "Simulator"
+                    selectMission(index)
+                    tab = "Simulator"
                 })
             }
         }
