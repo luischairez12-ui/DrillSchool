@@ -69,7 +69,7 @@ fun SubsiteTrainingDisplay(
                         fontWeight = FontWeight.Black, maxLines = 1)
                     Text("DEPTH", fontSize = 9.sp, color = SchoolMuted,
                         fontWeight = FontWeight.Black)
-                    Text(oneDecimal(value.depthFeet) + " ft",
+                    Text(feetAndInches(value.depthFeet),
                         fontSize = 16.sp, color = DeepSteel,
                         fontWeight = FontWeight.ExtraBold, maxLines = 1)
                     Surface(
@@ -82,7 +82,7 @@ fun SubsiteTrainingDisplay(
                         ) {
                             Text("TOOLFACE", fontSize = 8.sp, color = SchoolMuted,
                                 fontWeight = FontWeight.Bold)
-                            Text(value.clock.toString() + ":00",
+                            Text(value.toolfaceLabel,
                                 fontSize = 17.sp, color = Color(0xFF16806F),
                                 fontWeight = FontWeight.Black)
                         }
@@ -107,13 +107,13 @@ fun SubsiteTrainingDisplay(
                     Spacer(Modifier.height(5.dp))
                 }
                 Column(
-                    Modifier.width(58.dp).fillMaxHeight(),
+                    Modifier.width(82.dp).fillMaxHeight(),
                     verticalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    SubsiteStatus("SIGNAL", "SIM")
-                    SubsiteStatus("POWER", "—")
-                    SubsiteStatus("TEMP", "—")
-                    SubsiteStatus("PSI", "—")
+                    SubsiteStatus("TO LOCATOR", feetAndInches(value.distanceToLocatorFeet))
+                    SubsiteStatus("PROJECTED", feetAndInches(value.projectedDepthAtLocatorFeet))
+                    SubsiteStatus("TARGET", feetAndInches(value.targetDepthAtLocatorFeet))
+                    SubsiteStatus("ROD", value.rodNumber.toString())
                 }
             }
             Surface(color = Color(0xFFF1F3EA)) {
@@ -130,7 +130,7 @@ fun SubsiteTrainingDisplay(
                         color = Color(0xFFCAD4CB)
                     )
                     SlimGuidanceMetric(
-                        "GRADE Δ", signedTrainingFeet(value.depthDifferenceAtExitFeet),
+                        "GRADE Δ", signedTrainingFeet(value.verticalErrorAtLocatorFeet),
                         Modifier.weight(1f)
                     )
                     VerticalDivider(
@@ -138,7 +138,7 @@ fun SubsiteTrainingDisplay(
                         color = Color(0xFFCAD4CB)
                     )
                     SlimGuidanceMetric(
-                        "SIDE Δ", signedTrainingFeet(value.lateralDifferenceAtExitFeet),
+                        "SIDE Δ", signedTrainingFeet(value.lateralErrorAtLocatorFeet),
                         Modifier.weight(1f)
                     )
                 }
