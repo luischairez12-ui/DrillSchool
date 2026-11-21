@@ -94,3 +94,14 @@ The app opens at a Training Academy home screen, never in an active mission. Sim
 The operator seat uses the approved orange-and-white BoreLab concept: a single dark rig-side instrument panel with depth/pitch/clock/distance and live *game* path, an illustrative 2D/3D toggle, mission/rod status, locator message, left Rotate and right Push/Pull controls. Multitouch supports rotating while holding thrust. The actual manufacturer's display interfaces are not reproduced; DigiTrak-inspired and Subsite-inspired choices are independent of the selected drill rig.
 
 All telemetry is simulated. Real beacon temperature, mud PSI, fluid flow and link strength are explicitly not available. The game doesn't estimate hydraulic thrust force, downhole pressure, or safe operating conditions. Real equipment procedures and utility clearances require manufacturer training and local safety rules.
+
+
+## Driller and Locator Display Upgrade — V0.5.0
+
+Reworked operator view around field photos supplied by the project owner. The app retains BoreLab-inspired white/orange cards, and an original simulated instrument design with a prominent roll clock, pitch and depth, center target-steering reticle, game model exit-offset summary, and a narrow right-side telemetry reference column. DCI/DigiTrak-inspired and Subsite-inspired themes are distinct visual variants; 2D and perspective-style 3D are selectable.
+
+**Peek Locator** opens a separate handheld-receiver training view with the same simulated clock, pitch and depth, and a simplified bore illustration. **Bar Shot** still opens the game profile. Rotate and Push/Pull remain simultaneously operable. The mission view hides bottom navigation to give the instruments room, but retains a back control.
+
+The simulated guidance calculation displays projected exit-depth and lateral differences based on the *fictional* game state; this is not a true HDD steering estimate. No real hardware, beacon, battery, temperature, or drilling-fluid sensors are connected. Unavailable readings show an em dash instead of fabricated values. The application does not provide actual locate measurements, machine operating instructions, utility clearances, or verified target steering. It is not affiliated with equipment manufacturers.
+
+The simulator still uses simplified stepping, rod changes, optional Juan TTS, offline score storage and haptic feedback. User-submitted photos and concept artwork served as interface references; no OEM artwork, logos, or firmware have been embedded.
