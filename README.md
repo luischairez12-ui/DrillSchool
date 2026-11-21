@@ -69,3 +69,19 @@ python3 tests/check_source.py
 ## Next steps after real phone testing
 
 Adjust thumbstick sensitivity, UI size, and call timing from actual user feedback. More precise steering physics, rig-specific control layouts, and a dedicated locator-player mode would require explicit design and validation; do not infer them from this game model.
+
+
+## Rig Reference and Rod-Change Training — v0.3.0
+
+DrillSchool has selectable equipment **reference** profiles: Vermeer D24x40 S3, Vermeer D23x30 S3, Ditch Witch JT20 and JT21. Each profile lists documented **maximum ratings**, including nominal 10-foot rods, rated thrust/pullback (lb), maximum spindle torque (ft-lb), maximum spindle RPM, and maximum drilling-fluid PSI and GPM. The displayed maxima are **not actual live pressure, torque, force readings, recommended working settings or safety thresholds**. Hydraulic pressure and drilling-fluid pressure are different measurements.
+
+The game now advances a simulated 2 feet per input increment within a 10-foot nominal rod, stops for a simulated rod connection and requires the player to tap Add Rod to continue. This is an educational game cycle, not a replica of a real rig's rod-loader, vise and safety procedure. Tool path and hazards still use fictional physics, not engineering data.
+
+The Vermeer profiles retain the existing *dual training-joystick* user interface. The JT20 profile switches to one combined thrust/rotation joystick inspired by the manufacturer's operator manual (up/down thrust/pull, left/right rotation). Other joystick directions and behavior are not represented as an official rig-control replica.
+
+### Equipment references
+- Vermeer D24x40 S3 2026 spec: https://www.vermeer.com/getmedia/e6628b54-49cc-42cf-8456-f215c7a54485/vermeer-d24x40-s3-spec-sheet-may-2026.pdf?ext=.pdf
+- Vermeer D23x30 S3 2022 spec: https://www.vermeer.com/getmedia/475562df-ec1f-41c5-ab91-9d3e7c67d944/d23x30-s3-utility-drill-spec-sheet-updated-2022.pdf?ext=.pdf
+- JT20 product specs: https://www.ditchwitchwest.com/new-equipment/all-directional-drills/directional-drills/jt20-directional-drill/
+- JT20 operator manual: https://www.ditchwitchmidwest.com/fckimages/pdfs/manuals/Directional%20Drills/JT20%20operator_s%20manual%20%28ID0318836_09_SVC%29.pdf
+- JT21 manufacturer brochure: https://www.ditchwitch.com/wp-content/uploads/2024/11/JT21-Brochure.pdf
