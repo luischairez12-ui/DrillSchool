@@ -47,6 +47,7 @@ fun DrillSchoolApp() {
     var tab by remember { mutableStateOf("Home") }
     var sessionActive by remember { mutableStateOf(false) }
     var barShotOpen by remember { mutableStateOf(false) }
+    var locatorPeekOpen by remember { mutableStateOf(false) }
     var missionIndex by remember { mutableIntStateOf(0) }
     var session by remember { mutableStateOf(SimState(trainingMissions[0])) }
     var lastWinKey by remember { mutableStateOf("") }
@@ -119,6 +120,7 @@ fun DrillSchoolApp() {
         missionIndex = index
         session = SimState(trainingMissions[index])
         barShotOpen = false
+        locatorPeekOpen = false
         sessionActive = false
         lastWinKey = ""
     }
@@ -190,7 +192,7 @@ fun DrillSchoolApp() {
                             color = OrangeDark, fontWeight = FontWeight.Bold)
                     }
                     Surface(color = OrangePale, shape = RoundedCornerShape(11.dp)) {
-                        Text("V4", Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                        Text("V5", Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
                             color = OrangeDark, fontWeight = FontWeight.Black)
                     }
                 }
@@ -307,6 +309,7 @@ fun DrillSchoolApp() {
                         },
                         onReset = ::resetMission,
                         onPeek = { barShotOpen = true },
+                        onPeekLocator = { locatorPeekOpen = true },
                         onReplayLocator = {
                             speak("Locator Juan. " + locator.message, force = true)
                         },
@@ -326,6 +329,14 @@ fun DrillSchoolApp() {
                 })
             }
         }
+    }
+
+    if (locatorPeekOpen && tab == "Simulator" && sessionActive && !barShotOpen) {
+        LocatorPeekDialog(
+            session = session,
+            style = displayStyle,
+            onDismiss = { locatorPeekOpen = false }
+        )
     }
 
     if (settingsOpen) AlertDialog(
