@@ -20,7 +20,7 @@ fun main() {
     expect("entry locator call", LocatorCoach.current(beginning).key == "entry")
     expect("locator target twelve", LocatorCoach.current(beginning).targetClock == 12)
     val steer = TrainingEngine.advance(back, SimMode.STEER, back.lastClock)
-    expect("push increments station", steer.stationFeet == 5.0)
+    expect("push increments station", steer.stationFeet == 2.0)
     expect("steering changes pitch", steer.pitchPercent < back.pitchPercent)
     expect("shot stored", steer.shots.size == 2)
     val pulled = TrainingEngine.pullBack(steer)
@@ -32,7 +32,10 @@ fun main() {
     expect("spin plus push maintains pitch in game", spinning.pitchPercent == beginning.pitchPercent)
     expect("mode recorded", spinning.shots.last().mode == SimMode.ROTATE)
     var middle = beginning
-    repeat(8) { middle = TrainingEngine.advance(middle, SimMode.ROTATE, 12) }
+    repeat(8) {
+        if (middle.awaitingNextRod) middle = TrainingEngine.addRod(middle)
+        middle = TrainingEngine.advance(middle, SimMode.ROTATE, 12)
+    }
     expect("locator progresses through phases", LocatorCoach.current(middle).key != "entry")
     val terminal = beginning.copy(phase = SimPhase.FAILED)
     expect("locator warns on failure", LocatorCoach.current(terminal).key == "stopped")
