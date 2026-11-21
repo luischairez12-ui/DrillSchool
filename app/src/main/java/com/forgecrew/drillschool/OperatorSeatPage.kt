@@ -23,6 +23,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -88,141 +89,162 @@ fun OperatorSeatPage(
         } else if (locator.targetClock != session.lastClock) lastHeldClock = 0
     }
 
+
+    // Cockpit-first layout: mission + locator + live bore remain visible above
+    // a compact joystick dock, instead of letting the dock consume the screen.
     Column(Modifier.fillMaxSize()) {
-    LazyColumn(
-        modifier = Modifier.weight(1f),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 13.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            SchoolCard {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Eyebrow("SIMULATOR • TRAINING MODE")
-                        Text("Operator Seat", fontSize = 24.sp, fontWeight = FontWeight.Black, color = DeepSteel)
-                    }
-                    IconButton(onClick = onSettings) {
-                        Icon(Icons.Outlined.Settings, "Training settings", tint = DeepSteel)
-                    }
-                }
-                Box {
-                    OutlinedButton(
-                        onClick = { missionPicker = true },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(14.dp),
-                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 9.dp)
-                    ) {
-                        Icon(Icons.Outlined.Flag, null, tint = OrangeDark)
-                        Spacer(Modifier.width(8.dp))
-                        Text(session.mission.title, Modifier.weight(1f), maxLines = 1,
-                            overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.Bold)
-                        Icon(Icons.Outlined.ArrowDropDown, null)
-                    }
-                    DropdownMenu(expanded = missionPicker, onDismissRequest = { missionPicker = false }) {
-                        trainingMissions.forEachIndexed { index, mission ->
-                            DropdownMenuItem(text = { Text(mission.title) }, onClick = {
-                                leftAxis = 0f; rightAxis = 0f; missionPicker = false; onMission(index)
-                            })
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 7.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp)
+        ) {
+            item {
+                Surface(color = Color.White, shape = RoundedCornerShape(17.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SchoolLine)) {
+                    Column(Modifier.padding(horizontal = 11.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Outlined.Flag, null, tint = OrangeDark,
+                                        modifier = Modifier.size(19.dp))
+                                    Spacer(Modifier.width(5.dp))
+                                    Column(Modifier.weight(1f)) {
+                                        Text("OPERATOR SEAT", color = OrangeDark,
+                                            letterSpacing = 1.sp, fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black)
+                                        Text(session.mission.title, color = DeepSteel,
+                                            fontSize = 14.sp, fontWeight = FontWeight.Black,
+                                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
+                                    IconButton(onClick = { missionPicker = true },
+                                        modifier = Modifier.size(36.dp)) {
+                                        Icon(Icons.Outlined.ArrowDropDown,
+                                            "Choose training mission", tint = OrangeDark)
+                                    }
+                                }
+                                DropdownMenu(expanded = missionPicker,
+                                    onDismissRequest = { missionPicker = false }) {
+                                    trainingMissions.forEachIndexed { index, mission ->
+                                        DropdownMenuItem(text = { Text(mission.title) }, onClick = {
+                                            leftAxis = 0f
+                                            rightAxis = 0f
+                                            missionPicker = false
+                                            onMission(index)
+                                        })
+                                    }
+                                }
+                            }
+                            IconButton(onClick = onSettings, modifier = Modifier.size(38.dp)) {
+                                Icon(Icons.Outlined.Settings, "Simulator settings", tint = DeepSteel)
+                            }
+                        }
+                        LinearProgressIndicator(
+                            progress = { (session.stationFeet / session.mission.totalFeet).toFloat().coerceIn(0f, 1f) },
+                            modifier = Modifier.fillMaxWidth().height(5.dp),
+                            color = OrangeDark, trackColor = OrangePale
+                        )
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("${oneDecimal(session.stationFeet)} ft drilled",
+                                fontSize = 10.sp, color = SchoolMuted)
+                            Text("${oneDecimal(session.mission.totalFeet - session.stationFeet)} ft to exit",
+                                fontSize = 10.sp, color = SchoolMuted)
                         }
                     }
                 }
-                LinearProgressIndicator(
-                    progress = { (session.stationFeet / session.mission.totalFeet).toFloat().coerceIn(0f, 1f) },
-                    modifier = Modifier.fillMaxWidth().height(7.dp),
-                    color = OrangeDark, trackColor = OrangePale
-                )
-                Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth()) {
-                    SubText("${oneDecimal(session.stationFeet)} ft drilled")
-                    SubText("${oneDecimal(session.mission.totalFeet - session.stationFeet)} ft to exit")
+            }
+            item {
+                Surface(color = DeepSteel, shape = RoundedCornerShape(17.dp)) {
+                    Column(Modifier.padding(horizontal = 11.dp, vertical = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Outlined.RecordVoiceOver, null, tint = Orange,
+                                modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(7.dp))
+                            Text("LOCATOR • JUAN", color = Color.White,
+                                fontSize = 11.sp, fontWeight = FontWeight.Black,
+                                modifier = Modifier.weight(1f))
+                            TextButton(onClick = onReplayLocator,
+                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                                modifier = Modifier.height(29.dp)) {
+                                Icon(Icons.Outlined.VolumeUp, null, tint = Color.White,
+                                    modifier = Modifier.size(17.dp))
+                                Text(if (voiceEnabled) " Replay" else " Play",
+                                    color = Color.White, fontSize = 11.sp)
+                            }
+                        }
+                        Text("“${locator.message}”", color = Color.White, fontSize = 13.sp,
+                            lineHeight = 17.sp, fontWeight = FontWeight.SemiBold,
+                            maxLines = 3, overflow = TextOverflow.Ellipsis)
+                        Text(locator.objective, color = Color(0xFFFFC38C),
+                            fontSize = 10.sp, maxLines = 1,
+                            overflow = TextOverflow.Ellipsis)
+                    }
                 }
             }
-        }
-        item {
-            Surface(color = DeepSteel, shape = RoundedCornerShape(19.dp)) {
-                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.RecordVoiceOver, null, tint = Orange, modifier = Modifier.size(25.dp))
-                        Spacer(Modifier.width(8.dp))
-                        Text("LOCATOR • JUAN", color = Color.White, fontWeight = FontWeight.Black,
-                            modifier = Modifier.weight(1f), letterSpacing = 1.sp, fontSize = 12.sp)
-                        TextButton(onClick = onReplayLocator,
-                            contentPadding = PaddingValues(horizontal = 4.dp)) {
-                            Icon(Icons.Outlined.VolumeUp, null, tint = Color.White,
-                                modifier = Modifier.size(19.dp))
-                            Spacer(Modifier.width(3.dp))
-                            Text(if (voiceEnabled) "REPLAY" else "PLAY", color = Color.White,
-                                fontWeight = FontWeight.Bold, fontSize = 11.sp)
+            item {
+                Surface(color = Color.White, shape = RoundedCornerShape(17.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, SchoolLine)) {
+                    Column(Modifier.padding(9.dp),
+                        verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("LIVE BORE • TRAINING MODEL", color = OrangeDark,
+                                fontSize = 10.sp, letterSpacing = 0.5.sp,
+                                fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
+                            Text("${session.lastClock} O'CLOCK",
+                                color = DeepSteel, fontSize = 11.sp, fontWeight = FontWeight.Black)
+                        }
+                        TrainingBoreCanvas(session = session, height = 135.dp)
+                        Row(Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                            MiniMetric("DEPTH", "${oneDecimal(session.depthFeet)} ft",
+                                Modifier.weight(1f))
+                            MiniMetric("PITCH", "${oneDecimal(session.pitchPercent)}%",
+                                Modifier.weight(1f))
+                            MiniMetric("ROTATION", "${if (rotationInput == 0) 0 else rpm} RPM",
+                                Modifier.weight(1f))
                         }
                     }
-                    Text("“${locator.message}”", color = Color.White, fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleMedium)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Outlined.Radio, null, tint = Orange, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(5.dp))
-                        Text(locator.objective, color = Color(0xFFFFCEA4),
-                            fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
+            item {
+                if (session.phase != SimPhase.RUNNING) {
+                    SchoolCard {
+                        Text(session.report,
+                            color = if (session.phase == SimPhase.COMPLETED) SafeGreen
+                                else Color(0xFFC43A36),
+                            fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                        if (session.phase == SimPhase.COMPLETED) {
+                            Text("SCORE • ${session.score}/100", color = SafeGreen,
+                                fontWeight = FontWeight.Black)
+                        }
+                        OutlinedButton(onClick = onReset, modifier = Modifier.fillMaxWidth()) {
+                            Icon(Icons.Outlined.RestartAlt, null)
+                            Text(" Restart mission")
+                        }
                     }
+                } else {
+                    Text(session.report, color = SchoolMuted, fontSize = 10.sp,
+                        maxLines = 2, lineHeight = 12.sp)
                 }
             }
-        }
-        item {
-            SchoolCard {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Eyebrow("BORE VIEW • TRAINING MODEL")
-                        Text("Live shot position", color = DeepSteel, fontWeight = FontWeight.Bold)
-                    }
-                    Text("${session.lastClock} O'CLOCK", color = OrangeDark, fontWeight = FontWeight.Black)
-                }
-                TrainingBoreCanvas(session = session, height = 148.dp)
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    MiniMetric("DEPTH", "${oneDecimal(session.depthFeet)} ft", Modifier.weight(1f))
-                    MiniMetric("PITCH", "${oneDecimal(session.pitchPercent)}%", Modifier.weight(1f))
-                    MiniMetric("ROTATION", "${if (rotationInput == 0) 0 else rpm} RPM", Modifier.weight(1f))
-                }
-                Button(onClick = onPeek, modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = OrangeDark),
-                    shape = RoundedCornerShape(12.dp)) {
-                    Icon(Icons.Outlined.StackedLineChart, null)
-                    Spacer(Modifier.width(7.dp))
-                    Text("Peek at Live Bar Shot", fontWeight = FontWeight.Bold)
-                }
+            item {
+                Text("Fictional training physics • not real drilling or utility safety guidance.",
+                    color = SchoolMuted, fontSize = 9.sp)
             }
         }
-        item {
-            SchoolCard {
-                Eyebrow("MISSION STATUS")
-                val accent = when (session.phase) {
-                    SimPhase.RUNNING -> DeepSteel
-                    SimPhase.COMPLETED -> SafeGreen
-                    SimPhase.FAILED -> Color(0xFFC43A36)
-                }
-                Text(session.report, fontWeight = FontWeight.SemiBold, color = accent)
-                if (session.phase == SimPhase.COMPLETED) {
-                    Text("BEST SHOT • ${session.score}/100", color = SafeGreen,
-                        fontWeight = FontWeight.Black, fontSize = 20.sp)
-                }
-                OutlinedButton(onClick = onReset, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Outlined.RestartAlt, null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Restart mission")
-                }
-            }
-        }
-        item { SubText("Educational game: fictional tool response and hazards. Not for use on real jobs.") }
-    }
-    OperatorControlDock(
-        session = session,
-        rotationInput = rotationInput,
-        rpm = rpm,
-        thrustInput = thrustInput,
-        onLeftAxis = { leftAxis = it },
-        onRightAxis = { rightAxis = it },
-        onRotate = onRotate,
-        onMove = onMove,
-        onPullBack = onPullBack,
-        onPeek = onPeek
-    )
+        OperatorControlDock(
+            session = session,
+            rotationInput = rotationInput,
+            rpm = rpm,
+            thrustInput = thrustInput,
+            onLeftAxis = { leftAxis = it },
+            onRightAxis = { rightAxis = it },
+            onRotate = onRotate,
+            onMove = onMove,
+            onPullBack = onPullBack,
+            onPeek = onPeek
+        )
     }
 }
 
@@ -239,57 +261,98 @@ private fun OperatorControlDock(
     onPullBack: () -> Unit,
     onPeek: () -> Unit
 ) {
-SchoolCard(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 3.dp)) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Eyebrow("OPERATOR CONTROLS")
-            Text("Rotation + Thrust", fontSize = 20.sp,
-                color = DeepSteel, fontWeight = FontWeight.Black)
-        }
-        TextButton(onClick = onPeek, contentPadding = PaddingValues(horizontal = 4.dp)) {
-            Icon(Icons.Outlined.StackedLineChart, null, Modifier.size(17.dp))
-            Spacer(Modifier.width(4.dp))
-            Text("Live Bar Shot", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+    Surface(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 3.dp),
+        shape = RoundedCornerShape(17.dp),
+        color = Color.White,
+        border = androidx.compose.foundation.BorderStroke(1.dp, SchoolLine),
+        shadowElevation = 4.dp
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("DRILL CONTROLS", color = OrangeDark, fontSize = 10.sp,
+                    letterSpacing = 0.7.sp, fontWeight = FontWeight.Black,
+                    modifier = Modifier.weight(1f))
+                TextButton(onClick = onPeek, modifier = Modifier.height(30.dp),
+                    contentPadding = PaddingValues(horizontal = 4.dp)) {
+                    Icon(Icons.Outlined.StackedLineChart, null, Modifier.size(17.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Peek at Live Bar Shot", fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold)
+                }
+            }
+            Row(Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f)) {
+                    Text("ROTATE", fontSize = 10.sp, color = DeepSteel,
+                        fontWeight = FontWeight.Black)
+                    TrainingJoystick(label = "", hint = "", horizontal = true,
+                        onAxis = onLeftAxis, enabled = session.phase == SimPhase.RUNNING,
+                        diameter = 81.dp)
+                    Text(if (rotationInput == 0) "STOPPED" else "${rpm} RPM",
+                        fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OrangeDark)
+                }
+                Surface(shape = RoundedCornerShape(14.dp), color = OrangePale) {
+                    Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("CLOCK", color = SchoolMuted, fontSize = 9.sp)
+                        Text("${session.lastClock}", fontSize = 24.sp,
+                            color = DeepSteel, fontWeight = FontWeight.Black)
+                        Text("O'CLOCK", color = OrangeDark,
+                            fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Column(horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f)) {
+                    Text("PUSH / PULL", fontSize = 10.sp, color = DeepSteel,
+                        fontWeight = FontWeight.Black)
+                    TrainingJoystick(label = "", hint = "", horizontal = false,
+                        onAxis = onRightAxis, enabled = session.phase == SimPhase.RUNNING,
+                        diameter = 81.dp)
+                    Text(when (thrustInput) {
+                        1 -> "PUSHING"
+                        -1 -> "PULLING"
+                        else -> "NEUTRAL"
+                    }, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OrangeDark)
+                }
+            }
+            Row(Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                OutlinedButton(
+                    onClick = { onRotate(-1, 0) },
+                    modifier = Modifier.weight(1f).height(34.dp),
+                    enabled = session.phase == SimPhase.RUNNING,
+                    contentPadding = PaddingValues(2.dp)
+                ) {
+                    Icon(Icons.Outlined.RotateLeft, null, Modifier.size(15.dp))
+                    Text(" Clock -1", fontSize = 10.sp)
+                }
+                OutlinedButton(
+                    onClick = { onMove(SimMode.STEER, session.lastClock) },
+                    modifier = Modifier.weight(1f).height(34.dp),
+                    enabled = session.phase == SimPhase.RUNNING,
+                    contentPadding = PaddingValues(2.dp)
+                ) {
+                    Icon(Icons.Outlined.ArrowForward, null, Modifier.size(15.dp))
+                    Text(" Push 5 ft", fontSize = 10.sp)
+                }
+                OutlinedButton(
+                    onClick = onPullBack,
+                    modifier = Modifier.weight(1f).height(34.dp),
+                    enabled = session.phase == SimPhase.RUNNING && session.shots.size > 1,
+                    contentPadding = PaddingValues(2.dp)
+                ) {
+                    Icon(Icons.Outlined.ArrowBack, null, Modifier.size(15.dp))
+                    Text(" Pull", fontSize = 10.sp)
+                }
+            }
         }
     }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-            TrainingJoystick(
-                label = "ROTATE", hint = "Left / right", horizontal = true,
-                onAxis = onLeftAxis, enabled = session.phase == SimPhase.RUNNING
-            )
-            Text("${if (rotationInput == 0) "STOPPED" else "$rpm RPM"}",
-                fontSize = 11.sp, color = OrangeDark, fontWeight = FontWeight.Bold)
-        }
-        Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
-            TrainingJoystick(
-                label = "PUSH / PULL", hint = "Up / down", horizontal = false,
-                onAxis = onRightAxis, enabled = session.phase == SimPhase.RUNNING
-            )
-            Text(when (thrustInput) { 1 -> "PUSHING"; -1 -> "PULLING"; else -> "NEUTRAL" },
-                fontSize = 11.sp, color = OrangeDark, fontWeight = FontWeight.Bold)
-        }
-    }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        OutlinedButton(onClick = { onRotate(-1, 40) }, modifier = Modifier.weight(1f),
-            enabled = session.phase == SimPhase.RUNNING, contentPadding = PaddingValues(5.dp)) {
-            Icon(Icons.Outlined.RotateLeft, null, Modifier.size(18.dp))
-            Text(" Rotate", fontSize = 12.sp)
-        }
-        OutlinedButton(onClick = { onMove(SimMode.STEER, session.lastClock) },
-            modifier = Modifier.weight(1f), enabled = session.phase == SimPhase.RUNNING,
-            contentPadding = PaddingValues(5.dp)) {
-            Icon(Icons.Outlined.ArrowForward, null, Modifier.size(18.dp))
-            Text(" Push 5 ft", fontSize = 12.sp)
-        }
-        OutlinedButton(onClick = onPullBack, modifier = Modifier.weight(1f),
-            enabled = session.phase == SimPhase.RUNNING && session.shots.size > 1,
-            contentPadding = PaddingValues(5.dp)) {
-            Icon(Icons.Outlined.ArrowBack, null, Modifier.size(18.dp))
-            Text(" Pull", fontSize = 12.sp)
-        }
-    }
-}
 }
 
 @Composable
@@ -307,16 +370,17 @@ private fun TrainingJoystick(
     hint: String,
     horizontal: Boolean,
     onAxis: (Float) -> Unit,
-    enabled: Boolean
+    enabled: Boolean,
+    diameter: Dp = 106.dp
 ) {
-    val maxMovePx = with(LocalDensity.current) { 27.dp.toPx() }
+    val maxMovePx = with(LocalDensity.current) { (diameter * 0.26f).toPx() }
     var knob by remember { mutableStateOf(Offset.Zero) }
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, color = DeepSteel, fontWeight = FontWeight.Black, fontSize = 12.sp)
-        Text(hint, color = SchoolMuted, fontSize = 10.sp)
-        Spacer(Modifier.height(5.dp))
+        if (label.isNotBlank()) Text(label, color = DeepSteel, fontWeight = FontWeight.Black, fontSize = 12.sp)
+        if (hint.isNotBlank()) Text(hint, color = SchoolMuted, fontSize = 10.sp)
+        if (label.isNotBlank() || hint.isNotBlank()) Spacer(Modifier.height(5.dp))
         Canvas(
-            Modifier.size(106.dp)
+            Modifier.size(diameter)
                 .pointerInput(enabled, horizontal) {
                     if (enabled) detectDragGestures(
                         onDrag = { change, amount ->
