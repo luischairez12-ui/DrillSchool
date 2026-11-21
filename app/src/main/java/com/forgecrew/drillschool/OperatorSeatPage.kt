@@ -35,12 +35,14 @@ import kotlin.math.roundToInt
 @Composable
 fun OperatorSeatPage(
     session: SimState,
+    rig: RigProfile,
     missionIndex: Int,
     onMission: (Int) -> Unit,
     onRotate: (Int, Int) -> Unit,
     onStopRotation: () -> Unit,
     onMove: (SimMode, Int) -> Unit,
     onPullBack: () -> Unit,
+    onAddRod: () -> Unit,
     onReset: () -> Unit,
     onPeek: () -> Unit,
     onReplayLocator: () -> Unit,
@@ -55,7 +57,7 @@ fun OperatorSeatPage(
     val latestSession by rememberUpdatedState(session)
     val rotationInput = when { leftAxis > 0.22f -> 1; leftAxis < -0.22f -> -1; else -> 0 }
     val thrustInput = when { rightAxis < -0.22f -> 1; rightAxis > 0.22f -> -1; else -> 0 }
-    val rpm = if (rotationInput == 0) 0 else (25 + 85 * abs(leftAxis)).roundToInt()
+    val rpm = if (rotationInput == 0) 0 else (15 + (rig.maxSpindleRpm - 15) * abs(leftAxis)).roundToInt().coerceAtMost(rig.maxSpindleRpm)
     val locator = LocatorCoach.current(session)
 
     LaunchedEffect(rotationInput, rpm, session.phase) {
@@ -144,6 +146,8 @@ fun OperatorSeatPage(
                             modifier = Modifier.fillMaxWidth().height(5.dp),
                             color = OrangeDark, trackColor = OrangePale
                         )
+                        Text("${rig.displayName} • ${oneDecimal(rig.rodFeet)} ft rods",
+                            fontSize = 10.sp, color = OrangeDark, fontWeight = FontWeight.Bold)
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("${oneDecimal(session.stationFeet)} ft drilled",
                                 fontSize = 10.sp, color = SchoolMuted)
@@ -180,6 +184,33 @@ fun OperatorSeatPage(
                             fontSize = 10.sp, maxLines = 1,
                             overflow = TextOverflow.Ellipsis)
                     }
+                }
+            }
+            item {
+                if (session.awaitingNextRod) {
+                    Surface(color = OrangePale, shape = RoundedCornerShape(15.dp)) {
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 9.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("ROD ${session.rodNumber} COMPLETE", fontSize = 11.sp,
+                                    color = DeepSteel, fontWeight = FontWeight.Black)
+                                Text("Carriage at 10 ft • simulated rod change required",
+                                    fontSize = 10.sp, color = SchoolMuted)
+                            }
+                            Button(onClick = {
+                                leftAxis = 0f
+                                rightAxis = 0f
+                                onAddRod()
+                            }, shape = RoundedCornerShape(12.dp),
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                modifier = Modifier.height(36.dp)) {
+                                Text("Add rod ${session.rodNumber + 1}", fontSize = 11.sp)
+                            }
+                        }
+                    }
+                } else {
+                    Text("ROD ${session.rodNumber} • ${oneDecimal((session.stationFeet - (session.rodNumber - 1) * rig.rodFeet).coerceIn(0.0, rig.rodFeet))} / ${oneDecimal(rig.rodFeet)} ft stroke",
+                        color = SchoolMuted, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
             item {
@@ -235,11 +266,13 @@ fun OperatorSeatPage(
         }
         OperatorControlDock(
             session = session,
+            rig = rig,
             rotationInput = rotationInput,
             rpm = rpm,
             thrustInput = thrustInput,
             onLeftAxis = { leftAxis = it },
             onRightAxis = { rightAxis = it },
+            onCombinedAxes = { x, y -> leftAxis = -x; rightAxis = y },
             onRotate = onRotate,
             onMove = onMove,
             onPullBack = onPullBack,
@@ -251,11 +284,13 @@ fun OperatorSeatPage(
 @Composable
 private fun OperatorControlDock(
     session: SimState,
+    rig: RigProfile,
     rotationInput: Int,
     rpm: Int,
     thrustInput: Int,
     onLeftAxis: (Float) -> Unit,
     onRightAxis: (Float) -> Unit,
+    onCombinedAxes: (Float, Float) -> Unit,
     onRotate: (Int, Int) -> Unit,
     onMove: (SimMode, Int) -> Unit,
     onPullBack: () -> Unit,
@@ -284,41 +319,71 @@ private fun OperatorControlDock(
                         fontWeight = FontWeight.Bold)
                 }
             }
-            Row(Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.weight(1f)) {
-                    Text("ROTATE", fontSize = 10.sp, color = DeepSteel,
-                        fontWeight = FontWeight.Black)
-                    TrainingJoystick(label = "", hint = "", horizontal = true,
-                        onAxis = onLeftAxis, enabled = session.phase == SimPhase.RUNNING,
-                        diameter = 81.dp)
-                    Text(if (rotationInput == 0) "STOPPED" else "${rpm} RPM",
-                        fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OrangeDark)
-                }
-                Surface(shape = RoundedCornerShape(14.dp), color = OrangePale) {
-                    Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally) {
+
+            if (rig.controlMode == RigControlMode.JT20_COMBINED) {
+                Row(Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("JT20 • COMBINED THRUST / ROTATE",
+                            fontSize = 10.sp, color = DeepSteel, fontWeight = FontWeight.Black)
+                        CombinedTrainingJoystick(onAxes = onCombinedAxes,
+                            enabled = session.phase == SimPhase.RUNNING,
+                            diameter = 100.dp)
+                        Text("↑ PUSH   ↓ PULL   ← CW   → CCW",
+                            fontSize = 9.sp, color = SchoolMuted)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text("CLOCK", color = SchoolMuted, fontSize = 9.sp)
-                        Text("${session.lastClock}", fontSize = 24.sp,
+                        Text("${session.lastClock}", fontSize = 30.sp,
                             color = DeepSteel, fontWeight = FontWeight.Black)
-                        Text("O'CLOCK", color = OrangeDark,
-                            fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Text(if (rotationInput == 0) "0 RPM" else "${rpm} RPM",
+                            color = OrangeDark, fontSize = 10.sp)
+                        Text(when (thrustInput) {
+                            1 -> "PUSH"
+                            -1 -> "PULL"
+                            else -> "NEUTRAL"
+                        }, color = OrangeDark, fontSize = 10.sp)
                     }
                 }
-                Column(horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.weight(1f)) {
-                    Text("PUSH / PULL", fontSize = 10.sp, color = DeepSteel,
-                        fontWeight = FontWeight.Black)
-                    TrainingJoystick(label = "", hint = "", horizontal = false,
-                        onAxis = onRightAxis, enabled = session.phase == SimPhase.RUNNING,
-                        diameter = 81.dp)
-                    Text(when (thrustInput) {
-                        1 -> "PUSHING"
-                        -1 -> "PULLING"
-                        else -> "NEUTRAL"
-                    }, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OrangeDark)
+            } else {
+                Row(Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f)) {
+                        Text("ROTATE", fontSize = 10.sp, color = DeepSteel,
+                            fontWeight = FontWeight.Black)
+                        TrainingJoystick(label = "", hint = "", horizontal = true,
+                            onAxis = onLeftAxis, enabled = session.phase == SimPhase.RUNNING,
+                            diameter = 81.dp)
+                        Text(if (rotationInput == 0) "STOPPED" else "${rpm} RPM",
+                            fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OrangeDark)
+                    }
+                    Surface(shape = RoundedCornerShape(14.dp), color = OrangePale) {
+                        Column(Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("CLOCK", color = SchoolMuted, fontSize = 9.sp)
+                            Text("${session.lastClock}", fontSize = 24.sp,
+                                color = DeepSteel, fontWeight = FontWeight.Black)
+                            Text("O'CLOCK", color = OrangeDark,
+                                fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f)) {
+                        Text("PUSH / PULL", fontSize = 10.sp, color = DeepSteel,
+                            fontWeight = FontWeight.Black)
+                        TrainingJoystick(label = "", hint = "", horizontal = false,
+                            onAxis = onRightAxis, enabled = session.phase == SimPhase.RUNNING,
+                            diameter = 81.dp)
+                        Text(when (thrustInput) {
+                            1 -> "PUSHING"
+                            -1 -> "PULLING"
+                            else -> "NEUTRAL"
+                        }, fontSize = 10.sp, fontWeight = FontWeight.Bold, color = OrangeDark)
+                    }
                 }
             }
             Row(Modifier.fillMaxWidth(),
@@ -335,11 +400,11 @@ private fun OperatorControlDock(
                 OutlinedButton(
                     onClick = { onMove(SimMode.STEER, session.lastClock) },
                     modifier = Modifier.weight(1f).height(34.dp),
-                    enabled = session.phase == SimPhase.RUNNING,
+                    enabled = session.phase == SimPhase.RUNNING && !session.awaitingNextRod,
                     contentPadding = PaddingValues(2.dp)
                 ) {
                     Icon(Icons.Outlined.ArrowForward, null, Modifier.size(15.dp))
-                    Text(" Push 5 ft", fontSize = 10.sp)
+                    Text(" Push 2 ft", fontSize = 10.sp)
                 }
                 OutlinedButton(
                     onClick = onPullBack,
@@ -418,5 +483,51 @@ private fun TrainingJoystick(
             drawCircle(Color(0xFF77818A), outer * .40f, stick,
                 style = Stroke(1.5.dp.toPx()))
         }
+    }
+}
+
+/**
+ * JT20-style *combined* training input, derived from the operator manual's
+ * right-hand thrust/rotation joystick, not a machine controller replacement.
+ * Forward = push, back = pull, left = clockwise, right = counterclockwise.
+ */
+@Composable
+private fun CombinedTrainingJoystick(
+    onAxes: (Float, Float) -> Unit,
+    enabled: Boolean,
+    diameter: Dp
+) {
+    val maxMovePx = with(LocalDensity.current) { (diameter * .25f).toPx() }
+    var knob by remember { mutableStateOf(Offset.Zero) }
+    Canvas(
+        Modifier.size(diameter).pointerInput(enabled) {
+            if (enabled) detectDragGestures(
+                onDrag = { change, amount ->
+                    change.consume()
+                    knob = Offset(
+                        (knob.x + amount.x).coerceIn(-maxMovePx, maxMovePx),
+                        (knob.y + amount.y).coerceIn(-maxMovePx, maxMovePx)
+                    )
+                    onAxes(knob.x / maxMovePx, knob.y / maxMovePx)
+                },
+                onDragEnd = { knob = Offset.Zero; onAxes(0f, 0f) },
+                onDragCancel = { knob = Offset.Zero; onAxes(0f, 0f) }
+            )
+        }
+    ) {
+        val center = Offset(size.width / 2f, size.height / 2f)
+        val outer = size.minDimension / 2 - 3.dp.toPx()
+        drawCircle(Color(0xFFF4F6F8), outer, center)
+        drawCircle(Color(0xFFC7D0D5), outer, center,
+            style = Stroke(2.dp.toPx()))
+        drawCircle(DeepSteel, outer * .76f, center)
+        drawCircle(OrangeDark, outer * .78f, center,
+            style = Stroke(5.dp.toPx()))
+        val stick = center + knob
+        drawCircle(Color(0xFF080E13), outer * .53f, stick)
+        drawCircle(Brush.radialGradient(listOf(Color(0xFF646D76), Color(0xFF252C32))),
+            outer * .44f, stick)
+        drawCircle(Color(0xFF77818A), outer * .40f, stick,
+            style = Stroke(1.5.dp.toPx()))
     }
 }
