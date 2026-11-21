@@ -77,7 +77,7 @@ fun LocatorPeekDialog(
                         ) {
                             Column(Modifier.padding(10.dp)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("ROLL: " + reading.clock + ":00",
+                                    Text("ROLL: " + reading.toolfaceLabel,
                                         color = DeepSteel, fontSize = 16.sp,
                                         fontWeight = FontWeight.Black,
                                         modifier = Modifier.weight(1f))
@@ -97,7 +97,7 @@ fun LocatorPeekDialog(
                                 ) {
                                     LocatorValue("PITCH", oneDecimal(reading.pitchPercent) + "%")
                                     LocatorValue("DEPTH", feetAndInches(reading.depthFeet))
-                                    LocatorValue("TO EXIT", oneDecimal(reading.distanceToExitFeet) + " ft")
+                                    LocatorValue("TO LOCATOR", feetAndInches(reading.distanceToLocatorFeet))
                                 }
                             }
                         }

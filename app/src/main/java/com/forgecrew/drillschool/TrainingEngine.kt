@@ -67,7 +67,8 @@ data class DrillShot(
     val lateralFeet: Double,
     val pitchPercent: Double,
     val clock: Int,
-    val mode: SimMode
+    val mode: SimMode,
+    val toolfaceTick: Int = if (clock == 12) 0 else (clock % 12) * 2
 )
 
 data class SimState(
@@ -77,6 +78,10 @@ data class SimState(
     val lateralFeet: Double = 0.0,
     val pitchPercent: Double = 8.0,
     val lastClock: Int = 12,
+    /** 24 half-hour positions: 0 = 12:00, 1 = 12:30, 7 = 3:30. */
+    val toolfaceTick: Int = 0,
+    /** Virtual locator station, separate from bore exit. Moves in 10 ft practice steps. */
+    val locatorStationFeet: Double = 10.0,
     val rotationRpm: Int = 0,
     val rodNumber: Int = 1,
     val awaitingNextRod: Boolean = false,
@@ -93,13 +98,40 @@ object TrainingEngine {
     const val stepFeet = 2.0
     const val rodFeet = 10.0 // Nominal rod length for the V3 model profiles.
 
-    /** Fictional clock orientation. Positive = clockwise, negative = counterclockwise. */
+    /** Fake clock, with selectable 30-minute increments for precision practice. */
+    fun nudgeToolface(state: SimState, direction: Int): SimState {
+        if (state.phase != SimPhase.RUNNING || direction == 0) return state
+        require(direction == -1 || direction == 1)
+        val tick = (state.toolfaceTick + direction + 24) % 24
+        val clock = if (tick < 2) 12 else tick / 2
+        return state.copy(
+            toolfaceTick = tick,
+            lastClock = clock,
+            rotationRpm = 0,
+            report = "Toolface aligned to ${clockLabelFromTick(tick)} (game model)."
+        )
+    }
+
+    fun moveLocatorAhead(state: SimState): SimState {
+        if (state.phase != SimPhase.RUNNING) return state
+        val newStation = (state.locatorStationFeet + 10.0)
+            .coerceAtMost(state.mission.totalFeet)
+        if (newStation <= state.locatorStationFeet) return state
+        return state.copy(
+            locatorStationFeet = newStation,
+            report = "Virtual locator moved to ${oneDecimal(newStation)} ft station."
+        )
+    }
+
+    /** Legacy full-hour orientation remains available for domain exercises. */
+
     fun orient(state: SimState, direction: Int, rpm: Int): SimState {
         if (state.phase != SimPhase.RUNNING || direction == 0) return state
         require(direction in -1..1)
         val nextClock = ((state.lastClock - 1 + direction + 12) % 12) + 1
         return state.copy(
             lastClock = nextClock,
+            toolfaceTick = (nextClock % 12) * 2,
             rotationRpm = rpm.coerceIn(0, 300),
             report = "Toolface at ${nextClock} o'clock • simulated rotation ${rpm.coerceIn(0, 300)} RPM."
         )
@@ -132,6 +164,7 @@ object TrainingEngine {
             lateralFeet = last.lateralFeet,
             pitchPercent = last.pitchPercent,
             lastClock = last.clock,
+            toolfaceTick = last.toolfaceTick,
             thrusts = (state.thrusts - 1).coerceAtLeast(0),
             steerThrusts = remaining.count { it.mode == SimMode.STEER },
             shots = remaining,
@@ -149,7 +182,9 @@ object TrainingEngine {
             report = "Rod ${state.rodNumber} reached its 10 ft limit. Connect the next simulated rod first."
         )
 
-        val radians = (if (clock == 12) 0 else clock) * PI / 6.0
+        val tick = if (clock == state.lastClock) state.toolfaceTick
+            else (clock % 12) * 2
+        val radians = tick * PI / 12.0
         val pitchChange = if (mode == SimMode.STEER) -1.2 * cos(radians) else 0.0
         val lateralChange = if (mode == SimMode.STEER) 0.34 * sin(radians) else 0.0
         val pitch = (state.pitchPercent + pitchChange).coerceIn(-16.0, 16.0)
@@ -158,7 +193,7 @@ object TrainingEngine {
         val atRodEnd = station >= nextRodBoundary - 0.0001 && station < state.mission.totalFeet
         val depth = state.depthFeet + (station - state.stationFeet) * pitch / 100.0
         val lateral = state.lateralFeet + lateralChange
-        val shot = DrillShot(station, depth, lateral, pitch, clock, mode)
+        val shot = DrillShot(station, depth, lateral, pitch, clock, mode, tick)
         val steps = state.shots + shot
         val steerCount = state.steerThrusts + (if (mode == SimMode.STEER) 1 else 0)
 
@@ -170,19 +205,22 @@ object TrainingEngine {
         }
         if (hit != null) return state.copy(
             stationFeet = station, depthFeet = depth, lateralFeet = lateral,
-            pitchPercent = pitch, lastClock = clock, thrusts = state.thrusts + 1,
+            pitchPercent = pitch, lastClock = clock, toolfaceTick = tick,
+            thrusts = state.thrusts + 1,
             steerThrusts = steerCount, shots = steps, phase = SimPhase.FAILED,
             report = "Simulation stopped: entered the ${hit.label} game hazard zone. Reset and try another path."
         )
         if (depth < 0.3 || depth > 12.0 || abs(lateral) > 9.0) return state.copy(
             stationFeet = station, depthFeet = depth, lateralFeet = lateral,
-            pitchPercent = pitch, lastClock = clock, thrusts = state.thrusts + 1,
+            pitchPercent = pitch, lastClock = clock, toolfaceTick = tick,
+            thrusts = state.thrusts + 1,
             steerThrusts = steerCount, shots = steps, phase = SimPhase.FAILED,
             report = "Out of simulated training corridor. Reset and manage pitch or lateral drift."
         )
         val next = state.copy(
             stationFeet = station, depthFeet = depth, lateralFeet = lateral,
-            pitchPercent = pitch, lastClock = clock, thrusts = state.thrusts + 1,
+            pitchPercent = pitch, lastClock = clock, toolfaceTick = tick,
+            thrusts = state.thrusts + 1,
             steerThrusts = steerCount, shots = steps,
             awaitingNextRod = atRodEnd,
             report = if (atRodEnd) "Rod ${state.rodNumber} complete at ${oneDecimal(station)} ft. Connect rod ${state.rodNumber + 1}."
@@ -211,3 +249,10 @@ object TrainingEngine {
 
 fun oneDecimal(number: Double): String = "%.1f".format(java.util.Locale.US, number)
 fun clockName(clock: Int): String = "${clock} o'clock"
+
+/** Tick labels are clock-hour and half-hour positions, not actual clock time. */
+fun clockLabelFromTick(rawTick: Int): String {
+    val tick = ((rawTick % 24) + 24) % 24
+    val hour = if (tick < 2) 12 else tick / 2
+    return hour.toString() + if (tick % 2 == 0) ":00" else ":30"
+}

@@ -117,3 +117,14 @@ The v0.5 design incorrectly drew DigiTrak- and Subsite-inspired displays using t
 Use the dropdown **inside the Operator Seat** to change between these profiles; the choice persists locally. Each has 2D/3D *training* variations. A larger, fixed-height bottom measurement strip prevents the previous clipped readouts.
 
 This is an original teaching interface informed by user-supplied equipment photographs. **It is not exact OEM firmware and is not live locating equipment**. Readouts are fictional game values, and unavailable transmitter battery, temperature, and fluid pressure show dashes. Never use DrillSchool for actual steering decisions or utility clearances.
+
+
+## v0.7.0 — Locator guidance logic and precision toolface
+
+The training model now has **24 half-hour toolface positions** (e.g., 3:30). Rotate's left/right arrow taps advance 30 minutes. Holding the dial repeats at adjustable intervals: Precision 900 ms (default), Normal 600 ms, Fast 350 ms. Each step provides short optional haptics. These are educational clock nudge speeds, **not real spindle RPM or steering commands**.
+
+The fictional locator has its own independent station (starting 10 ft ahead), with a **Move locator +10 ft** action when the head approaches. The monitor distinguishes **head depth**, **distance to locator**, **projected depth at locator**, **target depth at locator**, and a target-centering indicator. Pitch and trajectory updates follow simulated push; rotating the stationary toolface cannot change the guidance target.
+
+Filler battery, transmitter temperature, PSI, and wireless status are removed from guidance screens. The distinct DigiTrak-inspired 2D/3D layout includes large toolface, pitch, current depth and crosshair, and the training-only Subsite view has a profile and readouts. A new separately designed **MAG 9-inspired** profile shows toolface, pitch, depth/projected depth, locator distance, rod count and target centering. No UI claims to be OEM firmware or a real locator. No real instrumentation or calibrated physical drilling calculations exist in this app.
+
+Automated unit tests cover 30-minute precision, clock wrapping, separate locator movement, target unchanged by stationary rotation, depth projections, and rendering units. APK build runs unit tests before packaging.

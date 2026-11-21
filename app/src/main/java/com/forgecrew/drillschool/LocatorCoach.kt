@@ -16,6 +16,14 @@ object LocatorCoach {
         if (state.phase == SimPhase.FAILED) return LocatorCall(
             "stopped", "Stop the simulation. Check the profile and reset before trying again.", null, "Safety stop"
         )
+        val distanceToLocator = state.locatorStationFeet - state.stationFeet
+        if (distanceToLocator <= 2.0 &&
+            state.locatorStationFeet < state.mission.totalFeet
+        ) return LocatorCall(
+            "relocate-" + state.locatorStationFeet,
+            "We've reached the virtual locator station. Move the locator ahead in this training mission.",
+            null, "Move the simulated locator +10 ft"
+        )
         val fraction = state.stationFeet / state.mission.totalFeet
         return when {
             fraction < 0.14 -> LocatorCall("entry", "Give me 12 o'clock. We're 10 feet out from the pit.", 12, "Orient to 12, then push")

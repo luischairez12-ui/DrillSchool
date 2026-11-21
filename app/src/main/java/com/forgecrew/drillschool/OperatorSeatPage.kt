@@ -35,6 +35,7 @@ import kotlin.math.roundToInt
 fun OperatorSeatPage(
     session: SimState,
     rig: RigProfile,
+    rotationSensitivity: RotationSensitivity,
     displayStyle: GuidanceStyle,
     onDisplayStyle: (GuidanceStyle) -> Unit,
     threeD: Boolean,
@@ -45,6 +46,7 @@ fun OperatorSeatPage(
     onMove: (SimMode, Int) -> Unit,
     onPullBack: () -> Unit,
     onAddRod: () -> Unit,
+    onMoveLocator: () -> Unit,
     onReset: () -> Unit,
     onPeek: () -> Unit,
     onPeekLocator: () -> Unit,
@@ -70,7 +72,7 @@ fun OperatorSeatPage(
             .coerceIn(0, rig.maxSpindleRpm)
     val locator = LocatorCoach.current(session)
 
-    LaunchedEffect(rotation, rpm, session.phase) {
+    LaunchedEffect(rotation, rotationSensitivity, session.phase) {
         if (session.phase != SimPhase.RUNNING) return@LaunchedEffect
         if (rotation == 0) {
             onStopRotation()
@@ -78,7 +80,8 @@ fun OperatorSeatPage(
         }
         while (isActive && currentSession.phase == SimPhase.RUNNING) {
             onRotate(rotation, rpm)
-            delay(340)
+            onHaptic(FeedbackCue.CLOCK)
+            delay(rotationSensitivity.stepDelayMs)
         }
     }
     LaunchedEffect(thrust, rotation, session.phase, session.awaitingNextRod) {
@@ -191,6 +194,31 @@ fun OperatorSeatPage(
             }
         }
 
+        // The locator is a movable training station, not the bore exit.
+        if (session.phase == SimPhase.RUNNING &&
+            session.locatorStationFeet < session.mission.totalFeet &&
+            (session.locatorStationFeet - session.stationFeet) <= 2.0
+        ) {
+            Surface(color = Color(0xFFEAF2F2), shape = RoundedCornerShape(12.dp)) {
+                Row(
+                    Modifier.fillMaxWidth().height(37.dp)
+                        .padding(horizontal = 7.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Locator at " + oneDecimal(session.locatorStationFeet) + " ft",
+                        modifier = Modifier.weight(1f),
+                        color = DeepSteel, fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    TextButton(
+                        onClick = { onMoveLocator(); onHaptic(FeedbackCue.LOCATOR) },
+                        contentPadding = PaddingValues(horizontal = 8.dp)
+                    ) { Text("Move locator +10 ft", fontSize = 11.sp) }
+                }
+            }
+        }
+
         if (session.awaitingNextRod) {
             Surface(color = OrangePale, shape = RoundedCornerShape(12.dp)) {
                 Row(
@@ -240,18 +268,18 @@ fun OperatorSeatPage(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         IconButton(
-                            onClick = { onRotate(-1, 0); onHaptic(FeedbackCue.ENGAGE) },
+                            onClick = { onRotate(-1, 0); onHaptic(FeedbackCue.CLOCK) },
                             modifier = Modifier.size(34.dp),
                             enabled = session.phase == SimPhase.RUNNING
                         ) {
                             Icon(Icons.Outlined.ChevronLeft, "Rotate counterclockwise",
                                 tint = OrangeDark)
                         }
-                        Text(if (rpm == 0) "STOPPED" else rpm.toString() + " RPM",
+                        Text(if (rotation == 0) "STOPPED" else rotationSensitivity.title + " • 30m",
                             color = SchoolMuted, fontSize = 9.sp,
                             fontWeight = FontWeight.Bold)
                         IconButton(
-                            onClick = { onRotate(1, 0); onHaptic(FeedbackCue.ENGAGE) },
+                            onClick = { onRotate(1, 0); onHaptic(FeedbackCue.CLOCK) },
                             modifier = Modifier.size(34.dp),
                             enabled = session.phase == SimPhase.RUNNING
                         ) {
