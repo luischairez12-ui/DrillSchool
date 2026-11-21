@@ -50,8 +50,11 @@ fun GuidanceDisplayPanel(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                if (style == GuidanceStyle.DIGITRAK) "DigiTrak-style ▾"
-                                else "Subsite-style ▾",
+                                when (style) {
+                                    GuidanceStyle.DIGITRAK -> "DigiTrak ▾"
+                                    GuidanceStyle.MAG9 -> "MAG 9 ▾"
+                                    GuidanceStyle.SUBSITE -> "Subsite ▾"
+                                },
                                 color = Color.White,
                                 fontWeight = FontWeight.ExtraBold,
                                 fontSize = 11.sp,
@@ -68,6 +71,13 @@ fun GuidanceDisplayPanel(
                             onClick = {
                                 pickDisplay = false
                                 onStyleChange(GuidanceStyle.DIGITRAK)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("MAG 9-style display") },
+                            onClick = {
+                                pickDisplay = false
+                                onStyleChange(GuidanceStyle.MAG9)
                             }
                         )
                         DropdownMenuItem(
@@ -95,14 +105,18 @@ fun GuidanceDisplayPanel(
                 }
             }
 
-            if (style == GuidanceStyle.DIGITRAK) {
-                DigiTrakTrainingDisplay(
+            when (style) {
+                GuidanceStyle.DIGITRAK -> DigiTrakTrainingDisplay(
                     session = session,
                     threeD = threeD,
                     modifier = Modifier.weight(1f).fillMaxWidth()
                 )
-            } else {
-                SubsiteTrainingDisplay(
+                GuidanceStyle.MAG9 -> Mag9TrainingDisplay(
+                    session = session,
+                    threeD = threeD,
+                    modifier = Modifier.weight(1f).fillMaxWidth()
+                )
+                GuidanceStyle.SUBSITE -> SubsiteTrainingDisplay(
                     session = session,
                     threeD = threeD,
                     modifier = Modifier.weight(1f).fillMaxWidth()
