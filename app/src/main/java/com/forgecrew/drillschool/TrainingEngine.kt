@@ -100,8 +100,8 @@ object TrainingEngine {
         val nextClock = ((state.lastClock - 1 + direction + 12) % 12) + 1
         return state.copy(
             lastClock = nextClock,
-            rotationRpm = rpm.coerceIn(0, 120),
-            report = "Toolface at ${nextClock} o'clock • simulated rotation ${rpm.coerceIn(0, 120)} RPM."
+            rotationRpm = rpm.coerceIn(0, 300),
+            report = "Toolface at ${nextClock} o'clock • simulated rotation ${rpm.coerceIn(0, 300)} RPM."
         )
     }
 
