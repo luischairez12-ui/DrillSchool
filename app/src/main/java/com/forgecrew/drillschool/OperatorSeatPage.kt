@@ -343,8 +343,7 @@ private fun OperatorControlDock(
                 }
                 OutlinedButton(
                     onClick = onPullBack,
-                    modifier = Modifier.weight(1f).height(34.dp,
-                    ),
+                    modifier = Modifier.weight(1f).height(34.dp),
                     enabled = session.phase == SimPhase.RUNNING && session.shots.size > 1,
                     contentPadding = PaddingValues(2.dp)
                 ) {
