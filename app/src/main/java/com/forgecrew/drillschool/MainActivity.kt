@@ -54,6 +54,15 @@ fun DrillSchoolApp() {
     var scoresVersion by remember { mutableIntStateOf(0) }
     var settingsOpen by remember { mutableStateOf(false) }
     var hapticLevel by remember { mutableIntStateOf(prefs.getInt("haptics_level", 2).coerceIn(0, 3)) }
+    var rotationSensitivity by remember {
+        mutableStateOf(
+            runCatching {
+                RotationSensitivity.valueOf(
+                    prefs.getString("rotation_sensitivity", "PRECISION") ?: "PRECISION"
+                )
+            }.getOrDefault(RotationSensitivity.PRECISION)
+        )
+    }
     var voiceEnabled by remember { mutableStateOf(prefs.getBoolean("locator_voice", true)) }
     var rigId by remember { mutableStateOf(prefs.getString("rig_id", "d24x40s3") ?: "d24x40s3") }
     val rig = getRigProfile(rigId)
@@ -192,7 +201,7 @@ fun DrillSchoolApp() {
                             color = OrangeDark, fontWeight = FontWeight.Bold)
                     }
                     Surface(color = OrangePale, shape = RoundedCornerShape(11.dp)) {
-                        Text("V6", Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
+                        Text("V7", Modifier.padding(horizontal = 10.dp, vertical = 7.dp),
                             color = OrangeDark, fontWeight = FontWeight.Black)
                     }
                 }
@@ -261,6 +270,7 @@ fun DrillSchoolApp() {
                     !sessionActive -> SimulatorSetupPage(
                         session = session,
                         rig = rig,
+                        rotationSensitivity = rotationSensitivity,
                         displayStyle = displayStyle,
                         practiceMode = practiceMode,
                         onStyle = {
@@ -299,8 +309,8 @@ fun DrillSchoolApp() {
                             prefs.edit().putBoolean("guidance_3d", it).apply()
                         },
                         practiceMode = practiceMode,
-                        onRotate = { direction, rpm ->
-                            session = TrainingEngine.orient(session, direction, rpm)
+                        onRotate = { direction, _ ->
+                            session = TrainingEngine.nudgeToolface(session, direction)
                         },
                         onStopRotation = {
                             if (session.rotationRpm != 0)
@@ -312,6 +322,9 @@ fun DrillSchoolApp() {
                         },
                         onAddRod = {
                             session = TrainingEngine.addRod(session)
+                        },
+                        onMoveLocator = {
+                            session = TrainingEngine.moveLocatorAhead(session)
                         },
                         onReset = ::resetMission,
                         onPeek = { barShotOpen = true },
@@ -364,6 +377,28 @@ fun DrillSchoolApp() {
                 }
                 Text("Published maximum ratings, not live measurements or recommended operating settings.",
                     fontSize = 11.sp, color = SchoolMuted)
+                HorizontalDivider()
+                Text("Toolface joystick sensitivity", fontWeight = FontWeight.Bold)
+                RotationSensitivity.entries.forEach { sensitivity ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = rotationSensitivity == sensitivity,
+                            onClick = {
+                                rotationSensitivity = sensitivity
+                                prefs.edit().putString(
+                                    "rotation_sensitivity", sensitivity.name
+                                ).apply()
+                            }
+                        )
+                        Text(
+                            sensitivity.title + " • 30-minute step every " +
+                                sensitivity.stepDelayMs + " ms",
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+                SubText("Tap arrows for one half-hour step. Hold the dial to repeat. " +
+                    "The game clock is not actual machine RPM.")
                 HorizontalDivider()
                 Text("Haptic feedback", fontWeight = FontWeight.Bold)
                 listOf("Off", "Light", "Normal", "Strong").forEachIndexed { index, label ->
