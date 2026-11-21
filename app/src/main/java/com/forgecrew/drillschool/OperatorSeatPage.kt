@@ -189,7 +189,7 @@ fun OperatorSeatPage(
                         verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("LIVE BORE • TRAINING MODEL", color = OrangeDark,
-                                fontSize = 10.sp, letterSpacing = .5.sp,
+                                fontSize = 10.sp, letterSpacing = 0.5.sp,
                                 fontWeight = FontWeight.ExtraBold, modifier = Modifier.weight(1f))
                             Text("${session.lastClock} O'CLOCK",
                                 color = DeepSteel, fontSize = 11.sp, fontWeight = FontWeight.Black)
@@ -274,7 +274,7 @@ private fun OperatorControlDock(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("DRILL CONTROLS", color = OrangeDark, fontSize = 10.sp,
-                    letterSpacing = .7.sp, fontWeight = FontWeight.Black,
+                    letterSpacing = 0.7.sp, fontWeight = FontWeight.Black,
                     modifier = Modifier.weight(1f))
                 TextButton(onClick = onPeek, modifier = Modifier.height(30.dp),
                     contentPadding = PaddingValues(horizontal = 4.dp)) {
