@@ -10,8 +10,8 @@ android {
         applicationId = "com.forgecrew.drillschool"
         minSdk = 29
         targetSdk = 35
-        versionCode = 8
-        versionName = "0.6.0"
+        versionCode = 9
+        versionName = "0.7.0"
     }
     buildTypes { release { isMinifyEnabled = false } }
     compileOptions {
@@ -30,5 +30,6 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
+    testImplementation("junit:junit:4.13.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
 }
